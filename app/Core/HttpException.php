@@ -68,7 +68,6 @@ class HttpException extends RuntimeException
             403     => 'Accès refusé.',
             404     => 'Page introuvable.',
             405     => 'Méthode non autorisée.',
-            419     => 'Session expirée, veuillez réessayer.',
             429     => 'Trop de requêtes, réessayez plus tard.',
             default => 'Une erreur est survenue.',
         };
