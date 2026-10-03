@@ -1,0 +1,28 @@
+# ─────────────────────────────────────────────────────────────
+# WYLDE — protection du dossier storage
+# Ce dossier contient les médias uploadés, les logs et le cache.
+# Il n'est jamais servi directement par Apache.
+# ─────────────────────────────────────────────────────────────
+
+# Tout est refusé, y compris les fichiers.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
+
+Options -Indexes -ExecCGI
+
+# Aucun interpréteur ne doit s'exécuter dans ce dossier (cf. §13.4).
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phar
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .phar
+
+# Bloque la création de fichiers .htaccess par un upload.
+<FilesMatch "\.ht">
+    Require all denied
+</FilesMatch>

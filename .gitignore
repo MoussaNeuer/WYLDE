@@ -1,0 +1,31 @@
+# ── Environnement & secrets ──────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Dépendances (aucune en V1,composer reste optionnel) ─────
+/vendor/
+
+# ── Fichiers générés ────────────────────────────────────────
+/public/assets/css/*.min.css
+/public/assets/js/*.min.js
+/public/assets/css/*.map
+/public/assets/js/*.map
+
+# ── Médias uploadés (versions de prod) ──────────────────────
+/storage/uploads/products/*
+!/storage/uploads/products/.gitkeep
+!/storage/uploads/products/.htaccess
+
+# ── Logs & cache ────────────────────────────────────────────
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/cache/*
+!/storage/cache/.gitkeep
+
+# ── Système & éditeurs ─────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

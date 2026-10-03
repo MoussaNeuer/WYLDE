@@ -1,0 +1,17 @@
+# Dossier des médias produits (hors document root, cf. §13.4).
+# Aucun fichier ici ne doit être interprété ni listé.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
+
+Options -Indexes -ExecCGI
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phar .cgi .pl
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .phar .cgi .pl

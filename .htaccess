@@ -1,0 +1,46 @@
+# ─────────────────────────────────────────────────────────────
+# WYLDE — protection de l'arborescence du projet
+#
+# Sur ce serveur local, le document root est C:\wamp64\www : la racine
+# du projet se trouve donc DANS le document root. Les règles de
+# public/.htaccess ne s'appliquent qu'à ce seul sous-dossier, si bien
+# qu'une traversée permitted de télécharger n'importe quel fichier du
+# projet (/WYLDE/public/../../.env, /WYLDE/.git/config, …).
+#
+# Ce fichier couvre toute l'arborescence WYLDE. Il doit rester minimal :
+# la configuration applicative (réécriture vers index.php) reste celle
+# de public/.htaccess.
+# ─────────────────────────────────────────────────────────────
+
+# Pas de listage de répertoire.
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # ── Traversée de répertoire ──────────────────────────────────
+    # Forme décodée : /WYLDE/public/media/../../../.env
+    RewriteRule "(^|/)\.\.(/|$)" - [F,L]
+
+    # Forme encodée : %2e%2e, ..%5c, %5c.. (%5c = séparateur Windows).
+    RewriteCond %{THE_REQUEST} "(%2e%2e|\.\.%5c|%5c\.\.)" [NC]
+    RewriteRule ^ - [F,L]
+
+    # ── Fichiers et dossiers cachés ─────────────────────────────
+    # .env, .git, .svn, .htaccess, .editorconfig…
+    # .well-known reste accessible (défis de certificat).
+    RewriteCond %{REQUEST_URI} !/\.well-known/ [NC]
+    RewriteRule "(^|/)\.[^/]*(/|$)" - [F,L]
+</IfModule>
+
+# Défense en profondeur : ces fichiers ne doivent jamais être servis,
+# même si une requête atteignait directement le dossier qui les contient.
+<FilesMatch "(^\.|\.(env|ini|log|sql|md|json|lock|yml|yaml|bak|dist)$)">
+    Require all denied
+</FilesMatch>
+
+# Aucun PHP exécutable hors de public/ (public/.htaccess réautorise
+# explicitement son index.php).
+<FilesMatch "\.php$">
+    Require all denied
+</FilesMatch>

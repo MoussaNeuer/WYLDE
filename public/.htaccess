@@ -1,0 +1,92 @@
+# ─────────────────────────────────────────────────────────────
+# WYLDE — document racine public
+# ─────────────────────────────────────────────────────────────
+
+# Compression (cf. §14)
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css
+    AddOutputFilterByType DEFLATE application/javascript application/json
+    AddOutputFilterByType DEFLATE image/svg+xml application/xml
+</IfModule>
+
+# Cache navigateur des assets versionnés
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css              "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType image/jpeg            "access plus 1 year"
+    ExpiresByType image/png             "access plus 1 year"
+    ExpiresByType image/webp            "access plus 1 year"
+    ExpiresByType image/avif            "access plus 1 year"
+    ExpiresByType image/svg+xml         "access plus 1 month"
+    ExpiresByType text/html             "access plus 0 seconds"
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|jpg|jpeg|png|webp|avif|svg|woff2?)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+</IfModule>
+
+# Pas de listage de répertoire
+Options -Indexes
+
+# Charset par défaut
+AddDefaultCharset UTF-8
+
+# Redirection de tout le trafic vers index.php
+#
+# Pas de RewriteBase ici : en contexte .htaccess (par répertoire), la
+# substitution est déjà relative au dossier courant, ce qui garde
+# l'application fonctionnelle dans un sous-dossier comme /WYLDE/public/.
+# Poser RewriteBase / enverrait /WYLDE/public/account vers /index.php
+# à la racine du site.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # ── Sécurité : aucune traversée de répertoire ───────────────────
+    # Ces règles portent sur l'URI et sont donc évaluées AVANT toute
+    # résolution sur le disque. C'est indispensable : une traversée sort
+    # du répertoire public/, or les <FilesMatch> et Require de ce fichier
+    # ne s'appliquent plus hors de ce contexte — c'est ainsi qu'un
+    # /media/../../.env atteignait le .env du projet.
+    # 1. Forme décodée : /media/../../.env
+    RewriteRule "(^|/)\.\.(/|$)" - [F,L]
+
+    # 2. Forme encodée : %2e%2e, ..%5c, %5c.. (séparateur Windows).
+    RewriteCond %{THE_REQUEST} "(%2e%2e|\.\.%5c|%5c\.\.)" [NC]
+    RewriteRule ^ - [F,L]
+
+    # 3. Aucun segment de chemin commençant par un point :
+    #    .env, .git, .htaccess, .svn…
+    RewriteRule "(^|/)\.[^/]*$" - [F,L]
+
+    # Forcer le HTTPS quand l'environnement est réellement en production
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteCond %{ENV:APP_ENV} ^production$
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [L,R=301]
+
+    # Fichiers et dossiers réellement présents sont servis directement
+    # (les médias, eux, vivent dans storage/uploads : ils transitent par
+    # /media/{chemin} et sont donc réécrits vers le front controller).
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Tout le reste passe par le front controller
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Interdit l'accès aux fichiers sensibles
+<FilesMatch "^(\.env|\.git.*|composer\.(json|lock)|.*\.md)$">
+    Require all denied
+</FilesMatch>
+
+# Pas de PHP exécutable ailleurs qu'index.php
+<FilesMatch "\.php$">
+    Require all denied
+</FilesMatch>
+<Files "index.php">
+    Require all granted
+</Files>

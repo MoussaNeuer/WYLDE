@@ -1,0 +1,40 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controllers\Admin;
+
+use App\Core\Request;
+use App\Core\Response;
+use App\Models\Order;
+use App\Services\AnalyticsService;
+
+/**
+ * Analytics : tendances sur une période, top produits et clients.
+ */
+final class AnalyticsController extends AdminController
+{
+    public function index(Request $request): Response
+    {
+        $days = max(7, min(180, $request->int('days', 30)));
+
+        $comparison = AnalyticsService::comparison($days);
+        $series     = AnalyticsService::revenueSeries($days);
+        $weekdays   = AnalyticsService::weekdayBreakdown($days);
+        $topProducts = AnalyticsService::topProducts(10);
+        $topCustomers = AnalyticsService::topCustomers(5);
+        $byStatus    = AnalyticsService::ordersByStatus();
+
+        return $this->view('admin/analytics/index', [
+            'title'       => __('admin.analytics'),
+            'days'        => $days,
+            'comparison'  => $comparison,
+            'series'      => $series,
+            'weekdays'    => $weekdays,
+            'topProducts' => $topProducts,
+            'topCustomers'=> $topCustomers,
+            'byStatus'    => $byStatus,
+            'orderStatuses' => Order::statuses(),
+        ]);
+    }
+}
