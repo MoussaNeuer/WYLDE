@@ -71,14 +71,18 @@ final class StockService
     public static function alertList(string $level = 'all', ?int $categoryId = null, int $limit = 100): array
     {
         $clauses  = [];
-        $bindings = ['threshold' => self::threshold()];
+        $bindings = [];
 
+        // Le seuil n'est lié que lorsqu'il apparaît dans la requête : avec
+        // EMULATE_PREPARES=false, PDO refuse un paramètre orphelin.
         if ($level === 'low') {
-            $clauses[] = 'v.stock > 0 AND v.stock <= :threshold';
+            $clauses[]            = 'v.stock > 0 AND v.stock <= :threshold';
+            $bindings['threshold'] = self::threshold();
         } elseif ($level === 'out') {
             $clauses[] = 'v.stock <= 0';
         } else {
-            $clauses[] = 'v.stock <= :threshold';
+            $clauses[]            = 'v.stock <= :threshold';
+            $bindings['threshold'] = self::threshold();
         }
 
         if ($categoryId !== null && $categoryId > 0) {

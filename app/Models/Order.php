@@ -72,6 +72,17 @@ class Order extends BaseModel
         ];
     }
 
+    /**
+     * États proposés par le filtre de la liste : les statuts réels, plus le
+     * regroupement « à traiter » qui alimente le badge du menu.
+     *
+     * @return array<int, string>
+     */
+    public static function filterStatuses(): array
+    {
+        return array_merge(['actionable'], self::statuses());
+    }
+
     /** @return array<int, string> */
     public static function paymentStatuses(): array
     {
@@ -264,6 +275,18 @@ class Order extends BaseModel
     }
 
     /**
+     * Commandes non annulées dont le paiement n'est pas encaissé : à
+     * vérifier avant d'expédier.
+     */
+    public static function countUnpaid(): int
+    {
+        return self::count(
+            '`payment_status` = :unpaid AND `status` <> :cancelled',
+            ['unpaid' => self::PAYMENT_UNPAID, 'cancelled' => self::STATUS_CANCELLED]
+        );
+    }
+
+    /**
      * Chiffre d'affaires encaissé : paiements marqués payés, annulations
      * et remboursements exclus.
      */
@@ -298,7 +321,13 @@ class Order extends BaseModel
         $bindings = [];
 
         $status = (string) ($params['status'] ?? '');
-        if (in_array($status, self::statuses(), true)) {
+        if ($status === 'actionable') {
+            // Regroupement du menu notifications : ce qui attend encore une
+            // action, et non un état unique de la commande.
+            $clauses[] = '`status` IN (:pending, :confirmed)';
+            $bindings['pending']   = self::STATUS_PENDING;
+            $bindings['confirmed'] = self::STATUS_CONFIRMED;
+        } elseif (in_array($status, self::statuses(), true)) {
             $clauses[]        = '`status` = :status';
             $bindings['status'] = $status;
         }

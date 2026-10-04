@@ -37,14 +37,25 @@ $icon = static function (string $name, string $class = 'admin-nav__icon'): strin
         'logout'     => '<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 8 6 12l4 4"/><path d="M6 12h9"/>',
         'user'       => '<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
         'chevron'    => '<path d="m9 6 6 6-6 6"/>',
+        'bell'       => '<path d="M18 8.5a6 6 0 1 0-12 0c0 5-2 6.5-2 6.5h16s-2-1.5-2-6.5Z"/><path d="M10.3 19a2 2 0 0 0 3.4 0"/>',
+        'help'       => '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 17h.01"/>',
+        'plus'       => '<path d="M12 5v14M5 12h14"/>',
+        'keyboard'   => '<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M9.5 10h.01M13 10h.01M16.5 10h.01M8 14h8"/>',
     ];
 
     return '<svg class="' . e($class) . '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
         . ($paths[$name] ?? '') . '</svg>';
 };
 
+// Notifications : déduites de l'état réel de la boutique (voir
+// NotificationService). Uniquement les trois plus urgentes dans le menu,
+// la page dédiée affiche tout.
+$alerts = \App\Services\NotificationService::alerts();
+$badge  = array_sum(array_column($alerts, 'count'));
+$urgent = array_slice($alerts, 0, 3);
+
 $nav = [
-    ['url' => '/admin', 'label' => __('admin.dashboard'), 'icon' => 'dashboard', 'match' => $route === 'admin'],
+    ['url' => '/admin', 'label' => __('admin.dashboard'), 'icon' => 'dashboard', 'match' => $route === 'admin', 'key' => '1'],
     ['group' => __('admin.products')],
     ['url' => '/admin/products', 'label' => __('admin.products'), 'icon' => 'products', 'match' => (bool) is_active('admin/products')],
     ['url' => '/admin/categories', 'label' => __('admin.categories'), 'icon' => 'categories', 'match' => (bool) is_active('admin/categories')],
@@ -54,11 +65,26 @@ $nav = [
     ['url' => '/admin/customers', 'label' => __('admin.customers'), 'icon' => 'customers', 'match' => (bool) is_active('admin/customers')],
     ['group' => __('admin.analytics_title')],
     ['url' => '/admin/analytics', 'label' => __('admin.analytics_title'), 'icon' => 'analytics', 'match' => (bool) is_active('admin/analytics')],
+    ['group' => __('admin.notifications.title')],
+    ['url' => '/admin/notifications', 'label' => __('admin.notifications.title'), 'icon' => 'bell', 'match' => (bool) is_active('admin/notifications'), 'badge' => $badge],
+    ['url' => '/admin/help', 'label' => __('admin.help.title'), 'icon' => 'help', 'match' => (bool) is_active('admin/help')],
     ['group' => __('admin.settings')],
     ['url' => '/admin/settings', 'label' => __('admin.settings'), 'icon' => 'settings', 'match' => (bool) is_active('admin/settings')],
     ['url' => '/admin/shipping-zones', 'label' => __('admin.shipping.title'), 'icon' => 'shipping', 'match' => (bool) is_active('admin/shipping-zones')],
     ['url' => '/admin/profile', 'label' => __('admin.profile'), 'icon' => 'profile', 'match' => (bool) is_active('admin/profile')],
     ['url' => '/admin/security', 'label' => __('admin.security_title'), 'icon' => 'security', 'match' => (bool) is_active('admin/security')],
+];
+
+// Raccourcis : les écrans qu'on ouvre dix fois par jour, en un geste.
+// 'key' est la touche réellement écoutée par admin.js, 'hint' ce qui est
+// affiché sur la tuile.
+$quick = [
+    ['url' => '/admin/products/create', 'label' => __('admin.quick_actions.add_product'), 'icon' => 'plus', 'key' => 'n', 'hint' => 'N'],
+    ['url' => '/admin/orders',           'label' => __('admin.quick_actions.view_orders'),  'icon' => 'orders', 'key' => '2', 'hint' => 'Alt+2'],
+    ['url' => '/admin/inventory',        'label' => __('admin.quick_actions.manage_stock'), 'icon' => 'inventory', 'key' => '3', 'hint' => 'Alt+3'],
+    ['url' => '/admin/customers',        'label' => __('admin.customers'),   'icon' => 'customers', 'key' => '4', 'hint' => 'Alt+4'],
+    ['url' => '/admin/analytics',        'label' => __('admin.analytics_title'), 'icon' => 'analytics', 'key' => '5', 'hint' => 'Alt+5'],
+    ['url' => '/admin/help',             'label' => __('admin.help.title'),  'icon' => 'help', 'key' => '?', 'hint' => '?'],
 ];
 
 $email = (string) ($user?->email ?? '');
@@ -115,6 +141,56 @@ $email = (string) ($user?->email ?? '');
             <span class="admin-search__icon" aria-hidden="true"><?= $icon('search', 'admin-search__glyph') ?></span>
         </form>
 
+        <!-- Notifications, accès rapide et navigation partagent un seul
+             défilement : sur un écran court, rien ne peut être coupé. -->
+        <div class="admin-drawer__scroll">
+
+        <div class="admin-drawer__block">
+            <a class="admin-bell" href="<?= e(url('/admin/notifications')) ?>">
+                <span class="admin-bell__icon" aria-hidden="true"><?= $icon('bell', 'admin-bell__glyph') ?></span>
+                <span class="admin-bell__text">
+                    <strong><?= e(__('admin.notifications.title')) ?></strong>
+                    <small>
+                        <?php if ($badge === 0): ?>
+                            <?= e(__('admin.notifications.all_clear')) ?>
+                        <?php else: ?>
+                            <?= e(__('admin.notifications.summary', ['count' => $badge])) ?>
+                        <?php endif; ?>
+                    </small>
+                </span>
+                <?php if ($badge > 0): ?>
+                    <span class="admin-bell__badge admin-bell__badge--<?= e(\App\Services\NotificationService::worstLevel()) ?>"><?= $badge > 99 ? '99+' : $badge ?></span>
+                <?php endif; ?>
+            </a>
+
+            <?php if ($urgent !== []): ?>
+                <ul class="admin-alerts">
+                    <?php foreach ($urgent as $alert): ?>
+                        <li>
+                            <a href="<?= e(url((string) $alert['url'])) ?>">
+                                <span class="admin-alerts__dot is-<?= e((string) $alert['level']) ?>" aria-hidden="true"></span>
+                                <span class="admin-alerts__label"><?= e((string) $alert['label']) ?></span>
+                                <span class="admin-alerts__count"><?= (int) $alert['count'] ?></span>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </div>
+
+        <div class="admin-drawer__block">
+            <p class="admin-block__label"><?= e(__('admin.quick_access')) ?></p>
+            <div class="admin-quick">
+                <?php foreach ($quick as $item): ?>
+                    <a class="admin-quick__tile" href="<?= e(url($item['url'])) ?>" data-key="<?= e($item['key']) ?>">
+                        <span class="admin-quick__icon" aria-hidden="true"><?= $icon($item['icon'], 'admin-quick__glyph') ?></span>
+                        <span class="admin-quick__label"><?= e($item['label']) ?></span>
+                        <kbd class="admin-quick__key"><?= e($item['hint']) ?></kbd>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
         <nav class="admin-nav" aria-label="<?= e(__('common.main_menu')) ?>">
             <?php foreach ($nav as $item): ?>
                 <?php if (isset($item['group'])): ?>
@@ -124,12 +200,18 @@ $email = (string) ($user?->email ?? '');
 
                 <a href="<?= e(url($item['url'])) ?>"
                    class="admin-nav__link<?= $item['match'] ? ' is-active' : '' ?>"
-                   <?= $item['match'] ? 'aria-current="page"' : '' ?>>
+                   <?= $item['match'] ? 'aria-current="page"' : '' ?>
+                   <?= isset($item['key']) ? 'data-key="' . e($item['key']) . '"' : '' ?>>
                     <?= $icon($item['icon']) ?>
                     <span><?= e($item['label']) ?></span>
+                    <?php if (!empty($item['badge'])): ?>
+                        <span class="admin-nav__badge"><?= (int) $item['badge'] > 99 ? '99+' : (int) $item['badge'] ?></span>
+                    <?php endif; ?>
                 </a>
             <?php endforeach; ?>
         </nav>
+
+        </div>
 
         <div class="admin-account" data-sidebar-account>
             <p class="admin-account__label"><?= e(__('admin.account')) ?></p>
@@ -150,10 +232,27 @@ $email = (string) ($user?->email ?? '');
                 <a href="<?= e(url('/admin/security')) ?>">
                     <?= $icon('security') ?><span><?= e(__('admin.security_title')) ?></span>
                 </a>
+                <a href="<?= e(url('/admin/help')) ?>" data-key="?">
+                    <?= $icon('help') ?><span><?= e(__('admin.help.title')) ?></span>
+                </a>
                 <a href="<?= e(url('/')) ?>" data-no-fast-nav>
                     <?= $icon('external') ?><span><?= e(__('admin.view_site')) ?></span>
                 </a>
             </div>
+
+            <details class="admin-keys">
+                <summary class="admin-keys__summary">
+                    <?= $icon('keyboard') ?><span><?= e(__('admin.shortcuts')) ?></span>
+                </summary>
+                <ul class="admin-keys__list">
+                    <li><kbd>Alt</kbd><kbd>1</kbd><span><?= e(__('admin.help.shortcut_nav')) ?></span></li>
+                    <li><kbd>/</kbd><span><?= e(__('admin.help.shortcut_search')) ?></span></li>
+                    <li><kbd>N</kbd><span><?= e(__('admin.help.shortcut_new')) ?></span></li>
+                    <li><kbd>B</kbd><span><?= e(__('admin.help.shortcut_menu')) ?></span></li>
+                    <li><kbd>?</kbd><span><?= e(__('admin.help.shortcut_help')) ?></span></li>
+                    <li><kbd>Échap</kbd><span><?= e(__('admin.help.shortcut_close')) ?></span></li>
+                </ul>
+            </details>
 
             <form method="post" action="<?= e(url('/logout')) ?>" class="admin-account__logout-form">
                 <?= csrf_field() ?>

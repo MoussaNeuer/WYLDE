@@ -194,6 +194,10 @@ $router->group(['admin'], 'admin');
     // ── Analytics ──────────────────────────────────────────────────────
     $router->get('/analytics', 'Admin\AnalyticsController@index');
 
+    // ── Notifications et aide (menu du back-office) ────────────────────
+    $router->get('/notifications', 'Admin\NotificationController@index');
+    $router->get('/help',          'Admin\HelpController@index');
+
     // ── Paramètres, zones de livraison, profil, sécurité ───────────────
     $router->get('/settings',         'Admin\SettingsController@index');
     $router->post('/settings',        'Admin\SettingsController@update')

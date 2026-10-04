@@ -25,11 +25,106 @@
     //Branchés qu'une fois, ils relisent cette variable après un swap.
     let drawer = null;
     let globalBound = false;
+    let shortcutsBound = false;
     let variantsBound = false;
     let loadingBound = false;
 
     function shell() {
         return document.querySelector('[data-shell]');
+    }
+
+    /**
+     * Raccourcis clavier du back-office.
+     *
+     * Les cibles sont résolues dans le DOM via data-key plutôt que
+     * codées en dur : les URL (base, locale) restent celles du rendu et la
+     * navigation instantanée du site intercepte le clic normalement.
+     */
+    function bindShortcuts() {
+        if (shortcutsBound) {
+            return;
+        }
+
+        shortcutsBound = true;
+
+        const TYPING = 'input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]), textarea, select, [contenteditable=""], [contenteditable="true"]';
+
+        const isTyping = (node) => Boolean(node && node.closest && node.closest(TYPING));
+
+        // Alt+1 à 5, N et ?: le lien est celui déjà rendu, donc cliquable.
+        const press = (key) => {
+            const link = document.querySelector('[data-key="' + key + '"]');
+
+            if (link) {
+                link.click();
+                return true;
+            }
+
+            return false;
+        };
+
+        const focusSearch = () => {
+            const current = shell();
+
+            if (!current) {
+                return;
+            }
+
+            if (window.matchMedia(MOBILE).matches && drawer && !drawer.isOpen()) {
+                drawer.setOpen(true);
+            }
+
+            const field = current.querySelector('#adminSearch');
+
+            if (field) {
+                window.setTimeout(() => field.focus({ preventScroll: true }), 60);
+            }
+        };
+
+        document.addEventListener('keydown', (event) => {
+            if (event.ctrlKey || event.metaKey || isTyping(event.target)) {
+                return;
+            }
+
+            const key = event.key;
+
+            // Alt+1 à 5 : navigation entre les écrans principaux.
+            if (event.altKey) {
+                if (key >= '1' && key <= '5' && press(key)) {
+                    event.preventDefault();
+                }
+
+                return;
+            }
+
+            if (key === '/') {
+                event.preventDefault();
+                focusSearch();
+                return;
+            }
+
+            if (key === '?') {
+                if (press('?')) {
+                    event.preventDefault();
+                }
+
+                return;
+            }
+
+            if (key === 'b' || key === 'B') {
+                if (!drawer) {
+                    return;
+                }
+
+                event.preventDefault();
+                drawer.setOpen(!drawer.isOpen());
+                return;
+            }
+
+            if ((key === 'n' || key === 'N') && press('n')) {
+                event.preventDefault();
+            }
+        });
     }
 
     function bindGlobalSidebar() {
@@ -939,6 +1034,7 @@
         initMediaManager();
         initLoading();
         initStock();
+        bindShortcuts();
     }
 
     if (document.readyState === 'loading') {

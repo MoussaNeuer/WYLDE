@@ -39,7 +39,7 @@ final class OrderController extends AdminController
             'page'           => $page,
             'pages'          => $last,
             'filters'        => $params,
-            'statuses'       => Order::statuses(),
+            'statuses'       => Order::filterStatuses(),
             'paymentStatuses'=> Order::paymentStatuses(),
             'prevUrl'        => $page > 1 ? pagination_url($page - 1) : null,
             'nextUrl'        => $page < $last ? pagination_url($page + 1) : null,

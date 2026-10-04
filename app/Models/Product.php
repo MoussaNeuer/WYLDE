@@ -154,6 +154,16 @@ class Product extends BaseModel
         );
     }
 
+    /** Produits dans un état donné (brouillons, archivés) : menu et pastilles. */
+    public static function countByStatus(string $status): int
+    {
+        if (!in_array($status, [self::STATUS_DRAFT, self::STATUS_PUBLISHED, self::STATUS_ARCHIVED], true)) {
+            return 0;
+        }
+
+        return self::count('`status` = :status', ['status' => $status]);
+    }
+
     /**
      * Recherche + filtres + tri pour la page boutique.
      *
