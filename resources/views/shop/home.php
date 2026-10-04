@@ -15,7 +15,7 @@
 <section class="hero">
     <div class="container">
         <p class="hero__eyebrow">
-            <img src="<?= e(asset('assets/images/logo/logo.png')) ?>" alt="<?= e(config('app.name', 'WYLDE')) ?>" width="85" height="34">
+            <img src="<?= e(asset('assets/images/logo/logo.svg')) ?>" alt="<?= e(config('app.name', 'WYLDE')) ?>" width="85" height="34">
         </p>
         <h1 class="hero__title"><?= e(__('app.tagline')) ?></h1>
         <a href="<?= e(url('/shop')) ?>" class="btn btn-light btn-lg"><?= e(__('nav.shop')) ?></a>

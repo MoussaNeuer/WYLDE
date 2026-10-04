@@ -11,7 +11,7 @@ $credit = site_credit();
 
             <div class="site-footer__brand">
                 <p class="site-footer__logo">
-                    <img src="<?= e(asset('assets/images/logo/logo.png')) ?>"
+                    <img src="<?= e(asset('assets/images/logo/logo.svg')) ?>"
                          alt="<?= e(config('app.name', 'WYLDE')) ?>" width="70" height="28">
                 </p>
                 <p class="site-footer__tagline"><?= e(__('app.tagline')) ?></p>

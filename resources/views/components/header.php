@@ -28,7 +28,7 @@ $user        = auth();
             </button>
 
             <a class="site-logo" href="<?= e(url('/')) ?>" aria-label="<?= e(config('app.name', 'WYLDE')) ?>">
-                <img src="<?= e(asset('assets/images/logo/logo.png')) ?>"
+                <img src="<?= e(asset('assets/images/logo/logo.svg')) ?>"
                      alt="<?= e(config('app.name', 'WYLDE')) ?>" width="60" height="24">
             </a>
 

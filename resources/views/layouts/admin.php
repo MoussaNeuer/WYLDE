@@ -80,7 +80,7 @@ $nav = [
     <aside class="admin-sidebar" id="adminSidebar" data-sidebar>
         <div class="admin-sidebar__brand">
             <a href="<?= e(url('/admin')) ?>">
-                <img src="<?= e(asset('assets/images/logo/logo.png')) ?>"
+                <img src="<?= e(asset('assets/images/logo/logo.svg')) ?>"
                      alt="<?= e(config('app.name', 'WYLDE')) ?>" width="65" height="26">
             </a>
         </div>
@@ -118,7 +118,7 @@ $nav = [
             </button>
 
             <a class="admin-header__brand" href="<?= e(url('/admin')) ?>" aria-label="<?= e(config('app.name', 'WYLDE')) ?>">
-                <img src="<?= e(asset('assets/images/logo/logo.png')) ?>" alt="" width="55" height="22">
+                <img src="<?= e(asset('assets/images/logo/logo.svg')) ?>" alt="" width="55" height="22">
             </a>
 
             <form class="admin-header__search" action="<?= e(url('/admin/products')) ?>" method="get" role="search">

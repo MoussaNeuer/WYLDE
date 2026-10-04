@@ -36,7 +36,7 @@ $credit = site_credit();
 <div class="auth-layout">
 
     <aside class="auth-aside" aria-hidden="true">
-        <img src="<?= e(asset('assets/images/logo/logo-white.png')) ?>" alt="" width="110" height="44">
+        <img src="<?= e(asset('assets/images/logo/logo-white.svg')) ?>" alt="" width="110" height="44">
 
         <div class="auth-aside__content">
             <p class="auth-aside__tagline"><?= e(__('app.tagline')) ?></p>
@@ -61,7 +61,7 @@ $credit = site_credit();
     <main class="auth-panel">
         <div class="auth-panel__inner">
             <a class="auth-mobile-brand" href="<?= e(url('/')) ?>">
-                <img src="<?= e(asset('assets/images/logo/logo.png')) ?>" alt="<?= e($brand) ?>" width="85" height="34">
+                <img src="<?= e(asset('assets/images/logo/logo.svg')) ?>" alt="<?= e($brand) ?>" width="85" height="34">
             </a>
 
             <div class="auth-card">
