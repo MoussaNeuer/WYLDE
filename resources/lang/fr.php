@@ -580,6 +580,8 @@ return [
             'preset_hint'     => 'Ajoute uniquement les tailles manquantes.',
             'preset_confirm'  => 'Ajouter les tailles courantes manquantes ?',
             'error_exists'    => 'La taille « :label » existe déjà.',
+            'error_unknown'   => 'La taille « :label » n’est pas au catalogue. Ajoutez-la dans Paramètres → Catalogue des tailles.',
+            'error_duplicate' => 'Des tailles identiques ont été saisies deux fois.',
             'error_in_use'    => 'La taille « :label » est utilisée par :count produit(s) : supprimez d’abord ces variantes.',
         ],
         'security' => [

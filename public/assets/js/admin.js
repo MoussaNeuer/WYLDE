@@ -506,10 +506,48 @@
             apply();
         }
 
+        // Une taille ne peut servir qu'une seule variante : les options déjà
+        // choisies ailleurs sont désactivées et masquées. Le select reste la
+        // seule source, le catalogue est revalidé côté serveur.
+        const syncSizeOptions = () => {
+            const selects = Array.from(document.querySelectorAll('[data-variant-size]'));
+            const taken   = selects.map((select) => select.value).filter((value) => value !== '');
+
+            selects.forEach((select) => {
+                Array.from(select.options).forEach((option) => {
+                    if (option.value === '') {
+                        return;
+                    }
+
+                    const used = taken.includes(option.value) && option.value !== select.value;
+
+                    option.disabled = used;
+                    option.hidden   = used;
+                });
+
+                // La valeur enregistrée a disparu du catalogue : on ne la
+                // laisse pas partir en POST, la validation la refuserait.
+                if (select.selectedOptions[0] && select.selectedOptions[0].disabled) {
+                    select.value = '';
+                }
+            });
+        };
+
         if (add && body && tpl) {
             add.addEventListener('click', () => {
                 body.appendChild(tpl.content.cloneNode(true));
+                syncSizeOptions();
             });
+        }
+
+        if (body) {
+            body.addEventListener('change', (event) => {
+                if (event.target.matches('[data-variant-size]')) {
+                    syncSizeOptions();
+                }
+            });
+
+            syncSizeOptions();
         }
 
         if (variantsBound) {
@@ -529,11 +567,13 @@
                 return;
             }
 
-            const row = remove.closest('[data-variant-row]');
+            const row  = remove.closest('[data-variant-row]');
             const rows = document.querySelectorAll('[data-variant-row]');
 
             if (rows.length > 1) {
                 row.remove();
+                syncSizeOptions();
+
                 return;
             }
 
@@ -545,7 +585,17 @@
                 input.value = input.type === 'number' ? '0' : '';
             });
 
-            row.querySelector('input[name="sizes[]"]').focus();
+            row.querySelectorAll('[data-variant-size]').forEach((select) => {
+                select.value = '';
+            });
+
+            syncSizeOptions();
+
+            const size = row.querySelector('[data-variant-size]');
+
+            if (size) {
+                size.focus();
+            }
         });
     }
 

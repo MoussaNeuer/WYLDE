@@ -311,9 +311,9 @@ $sizeOptions = static function (string $current) use ($sizes): array {
                                         <?php if ($row['size'] === ''): ?>
                                             <option value="" selected><?= e(__('admin.variants.pick_size')) ?></option>
                                         <?php endif; ?>
-                                        <?php foreach ($sizeOptions((string) $row['size']) as $value => $label): ?>
-                                            <option value="<?= e($value) ?>"<?= (string) $row['size'] === $value ? ' selected' : '' ?>>
-                                                <?= e($label) ?>
+                                        <?php foreach ($sizeOptions((string) $row['size']) as $optionValue => $optionLabel): ?>
+                                            <option value="<?= e($optionValue) ?>"<?= (string) $row['size'] === $optionValue ? ' selected' : '' ?>>
+                                                <?= e($optionLabel) ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>

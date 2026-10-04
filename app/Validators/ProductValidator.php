@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Validators;
 
 use App\Models\Product;
+use App\Models\ProductSize;
 
 /**
  * Validation du formulaire produit (création et édition).
@@ -61,22 +62,51 @@ class ProductValidator extends Validator
             $this->slugUnique($slug, 'products', $this->id);
         }
 
-        // Variantes : les tailles doivent être uniques au sein du produit.
-        $sizes = $this->data['sizes'] ?? [];
-        $sizeValues = [];
+        // Variantes : uniquement si le produit a des tailles. Le panneau
+        // des variantes reste soumis même quand il est masqué, donc sans
+        // cette condition des lignes oubliées seraient contrôlées.
+        if (!empty($this->data['has_sizes'])) {
+            $this->validateSizes();
+        }
+    }
 
-        if (is_array($sizes)) {
-            foreach ($sizes as $index => $size) {
-                if (is_string($size) && trim($size) !== '') {
-                    $sizeValues[] = strtolower(trim($size));
-                }
-            }
+    /**
+     * Contrôle les tailles du produit contre le catalogue admin.
+     *
+     * Le formulaire n'offre que des listes déroulantes, mais la requête
+     * peut être forgée : une taille hors catalogue est refusée ici,
+     * sinon un produit porterait une taille que l'admin ne peut plus
+     * choisir — et dont la suppression resterait bloquée par cette
+     * variante. Les valeurs sont normalisées comme à l'enregistrement.
+     */
+    private function validateSizes(): void
+    {
+        $sizes      = $this->data['sizes'] ?? [];
+        $catalogue  = ProductSize::labelMap();
+        $normalized = [];
+
+        if (!is_array($sizes)) {
+            return;
         }
 
-        $duplicates = array_diff_assoc($sizeValues, array_unique($sizeValues));
+        foreach ($sizes as $size) {
+            if (!is_string($size) || trim($size) === '') {
+                continue;
+            }
 
-        if ($duplicates !== []) {
-            $this->addError('sizes', 'Des tailles identiques ont été saisies deux fois.');
+            $label = ProductSize::normalize($size);
+
+            if (!isset($catalogue[$label])) {
+                $this->addError('sizes', __('admin.sizes.error_unknown', ['label' => $label]));
+
+                return;
+            }
+
+            $normalized[] = $label;
+        }
+
+        if (array_diff_assoc($normalized, array_unique($normalized)) !== []) {
+            $this->addError('sizes', __('admin.sizes.error_duplicate'));
         }
     }
 
@@ -142,7 +172,9 @@ class ProductValidator extends Validator
                 : null;
 
             $variants[] = [
-                'size'           => trim($size),
+                // Libellé du catalogue, pas la saisie brute : « s »
+                // devient « S », comme dans /admin/sizes.
+                'size'           => ProductSize::normalize($size),
                 'sku'            => isset($skus[$index]) && is_string($skus[$index]) ? trim($skus[$index]) : '',
                 'stock'          => isset($stocks[$index]) && is_numeric($stocks[$index]) ? max(0, (int) $stocks[$index]) : 0,
                 'price_override' => $price,

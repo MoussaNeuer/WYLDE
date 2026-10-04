@@ -581,6 +581,8 @@ return [
             'preset_hint'     => 'Only adds the sizes that are missing.',
             'preset_confirm'  => 'Add the missing common sizes?',
             'error_exists'    => 'Size “:label” already exists.',
+            'error_unknown'   => 'Size “:label” is not in the catalogue. Add it under Settings → Size catalogue.',
+            'error_duplicate' => 'The same size was entered twice.',
             'error_in_use'    => 'Size “:label” is used by :count product(s): remove those variants first.',
         ],
         'security' => [

@@ -22,6 +22,30 @@ $hasSizes = (bool) ($product->has_sizes ?? false);
 $effective = $product->effectivePrice();
 $hasDiscount = $product->hasDiscount();
 $stock     = $product->totalStock();
+
+// Prix et stock par variante : le select public les affiche, et product.js
+// reprend ces valeurs au changement de taille. Le libellé et le seuil de
+// stock viennent de stock_status(), le JS ne les recalcule pas.
+$variantData = [];
+
+foreach ($variants as $variant) {
+    $status = stock_status((int) $variant->stock);
+
+    $variantData[(string) $variant->id] = [
+        'price'     => money($variant->effectivePrice($product)),
+        'amount'    => (int) $variant->effectivePrice($product),
+        'stock'     => (int) $variant->stock,
+        'level'     => $status['level'],
+        'label'     => $status['label'],
+        'available' => $variant->isAvailable(),
+        'size'      => (string) $variant->size,
+    ];
+}
+
+$sizePayload = [
+    'base'     => (int) $effective,
+    'variants' => $variantData,
+];
 ?>
 <section class="section">
     <div class="container">
@@ -93,17 +117,28 @@ $stock     = $product->totalStock();
                     <?php if ($hasSizes && $variants !== []): ?>
                         <div class="form-group">
                             <label class="form-label" for="product-size"><?= e(__('product.size')) ?></label>
-                            <select class="form-select" id="product-size" name="variant_id" required>
+                            <select class="form-select" id="product-size" name="variant_id" required
+                                    data-product-size>
                                 <option value=""><?= e(__('product.size_select')) ?></option>
                                 <?php foreach ($variants as $variant): ?>
                                     <option value="<?= e((string) $variant->id) ?>"
                                         <?= $variant->id === ($defaultVariant?->id) ? 'selected' : '' ?>
                                         <?= !$variant->isAvailable() ? 'disabled' : '' ?>>
                                         <?= e($variant->size) ?>
-                                        <?= $variant->isAvailable() ? '' : '— ' . e(__('product.out_of_stock')) ?>
+                                        <?php if ($variant->isAvailable()): ?>
+                                            — <?= e($variantData[(string) $variant->id]['price']) ?>
+                                        <?php else: ?>
+                                            — <?= e($variantData[(string) $variant->id]['label']) ?>
+                                        <?php endif; ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
+                            <?php if ($variantData !== []): ?>
+                                <script type="application/json" data-product-sizes><?= json_encode(
+                                    $sizePayload,
+                                    JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP
+                                ) ?></script>
+                            <?php endif; ?>
                         </div>
                     <?php else: ?>
                         <input type="hidden" name="variant_id" value="<?= e((string) ($defaultVariant?->id ?? ($variants[0]->id ?? ''))) ?>">
@@ -149,4 +184,10 @@ $stock     = $product->totalStock();
             </div>
         </div>
     </section>
+<?php endif; ?>
+
+<?php if ($hasSizes && $variantData !== []): ?>
+    <?php App\Core\View::start('scripts'); ?>
+    <script src="<?= e(asset('assets/js/product.js')) ?>" defer></script>
+    <?php App\Core\View::stop(); ?>
 <?php endif; ?>
