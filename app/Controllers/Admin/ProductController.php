@@ -235,7 +235,7 @@ final class ProductController extends AdminController
         $product = Product::findOrFail($this->id($request));
 
         return $this->view('admin/products/media', [
-            'title'   => __('admin.media') . ' — ' . $product->name,
+            'title'   => __('admin.media_title') . ' — ' . $product->name,
             'product' => $product,
             'images'  => $product->images(),
         ]);

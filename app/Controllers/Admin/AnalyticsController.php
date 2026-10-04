@@ -26,7 +26,7 @@ final class AnalyticsController extends AdminController
         $byStatus    = AnalyticsService::ordersByStatus();
 
         return $this->view('admin/analytics/index', [
-            'title'       => __('admin.analytics'),
+            'title'       => __('admin.analytics_title'),
             'days'        => $days,
             'comparison'  => $comparison,
             'series'      => $series,

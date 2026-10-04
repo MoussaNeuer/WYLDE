@@ -24,7 +24,7 @@ final class AuthController extends Controller
 
         return $this->view('admin/auth/login', [
             'title' => __('admin.login_title'),
-        ], 'layouts/auth');
+        ], 'layouts/admin-login');
     }
 
     public function login(Request $request): Response

@@ -37,7 +37,7 @@ $trend = static function (mixed $value): string {
 <div class="admin-page">
 
     <header class="admin-page__head">
-        <h1 class="admin-page__title"><?= e(__('admin.analytics')) ?></h1>
+        <h1 class="admin-page__title"><?= e(__('admin.analytics_title')) ?></h1>
 
         <div class="admin-page__tools">
             <?php foreach ([7 => __('admin.period.week'), 30 => __('admin.period.month'), 90 => '90 j'] as $value => $text): ?>

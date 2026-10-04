@@ -14,7 +14,7 @@ $user = $user ?? auth();
         <h1 class="admin-page__title"><?= e(__('admin.profile')) ?></h1>
         <div class="admin-page__tools">
             <a class="btn btn-outline-light btn-sm"
-               href="<?= e(url('/admin/security')) ?>"><?= e(__('admin.security')) ?></a>
+               href="<?= e(url('/admin/security')) ?>"><?= e(__('admin.security_title')) ?></a>
         </div>
     </header>
 

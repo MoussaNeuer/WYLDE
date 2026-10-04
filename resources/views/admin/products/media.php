@@ -18,7 +18,7 @@ $productId = (int) $product->id();
     <a class="admin-page__back" href="<?= e(url('/admin/products')) ?>">← <?= e(__('admin.products')) ?></a>
 
     <header class="admin-page__head">
-        <h1 class="admin-page__title"><?= e(__('admin.media')) ?></h1>
+        <h1 class="admin-page__title"><?= e(__('admin.media_title')) ?></h1>
         <div class="admin-page__tools">
             <a class="btn btn-outline-light btn-sm"
                href="<?= e(url('/admin/products/' . $productId . '/edit')) ?>"><?= e(__('common.edit')) ?></a>

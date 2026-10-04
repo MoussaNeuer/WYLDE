@@ -52,7 +52,7 @@ $levels = [
                         <th><?= e(__('admin.product.category')) ?></th>
                         <th><?= e(__('admin.variants.size')) ?></th>
                         <th><?= e(__('admin.variants.sku')) ?></th>
-                        <th class="is-end"><?= e(__('admin.inventory.stock')) ?></th>
+                        <th class="is-end"><?= e(__('admin.inventory_title')) ?></th>
                         <th class="is-end"><?= e(__('admin.inventory.adjust')) ?></th>
                     </tr>
                 </thead>

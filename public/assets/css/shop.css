@@ -165,25 +165,6 @@
     color: var(--w-bg);
 }
 
-/* Barre de contexte pour les membres du personnel */
-.staff-bar {
-    background: var(--w-surface);
-    border-bottom: 1px solid var(--w-border);
-    font-size: var(--w-size-xs);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-
-.staff-bar .container {
-    display: flex;
-    align-items: center;
-    gap: var(--w-space-2);
-    min-height: 34px;
-}
-
-.staff-bar a:hover { text-decoration: underline; }
-.staff-bar__sep { color: var(--w-text-muted); }
-
 /* ── Hero ───────────────────────────────────────────────────────── */
 
 .hero {

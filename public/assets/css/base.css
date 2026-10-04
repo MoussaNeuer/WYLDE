@@ -341,3 +341,46 @@ hr {
         to   { background-position: -200% 0; }
     }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Navigation instantanée
+   Barre de progression en haut de l'écran : elle n'apparaît que le temps
+   de la récupération d'une page, donc rarement — c'est le but.
+   ══════════════════════════════════════════════════════════════════ */
+
+.nav-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: 2000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 180ms ease;
+    /* Ancre le repère à la zone visible sur mobile (encoche, barre d'URL). */
+    padding-top: env(safe-area-inset-top);
+}
+
+.nav-progress.is-active { opacity: 1; }
+
+.nav-progress span {
+    display: block;
+    width: 34%;
+    height: 3px;
+    background: var(--w-text);
+    border-radius: 0 3px 3px 0;
+}
+
+.nav-progress.is-active span {
+    animation: nav-progress-slide 900ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes nav-progress-slide {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(295%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nav-progress span { animation: none; }
+}

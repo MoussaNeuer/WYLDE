@@ -11,36 +11,333 @@
 
     /* ── Drawer latéral (mobile) ──────────────────────────────── */
 
-    function initSidebar() {
-        const shell  = document.querySelector('[data-shell]');
-        const toggle = document.querySelector('[data-sidebar-toggle]');
-        const shade  = document.querySelector('[data-sidebar-backdrop]');
+    const MOBILE = '(max-width: 900px)';
+    const FOCUSABLE = [
+        'a[href]',
+        'button:not([disabled])',
+        'input:not([disabled])',
+        'select:not([disabled])',
+        'textarea:not([disabled])',
+        '[tabindex]:not([tabindex="-1"])'
+    ].join(', ');
 
-        if (!shell || !toggle) {
+    // Référence sur le shell courant : les écouteurs globaux ne sont
+    //Branchés qu'une fois, ils relisent cette variable après un swap.
+    let drawer = null;
+    let globalBound = false;
+    let variantsBound = false;
+    let loadingBound = false;
+
+    function shell() {
+        return document.querySelector('[data-shell]');
+    }
+
+    function bindGlobalSidebar() {
+        if (globalBound) {
             return;
         }
 
+        globalBound = true;
+
+        // Échap referme, Tab reste piégé dans le menu ouvert.
+        document.addEventListener('keydown', (event) => {
+            if (!drawer) {
+                return;
+            }
+
+            if (event.key === 'Escape') {
+                drawer.setOpen(false);
+                return;
+            }
+
+            if (event.key !== 'Tab' || !drawer.isOpen()) {
+                return;
+            }
+
+            const items = Array.from(drawer.sidebar.querySelectorAll(FOCUSABLE))
+                .filter((node) => node.offsetParent !== null);
+
+            if (items.length === 0) {
+                return;
+            }
+
+            const first = items[0];
+            const last  = items[items.length - 1];
+
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
+
+        // Les pastilles recherche / compte du header ouvrent le menu déjà
+        // positionné sur la bonne section (le lien reste normal au desktop).
+        document.addEventListener('click', (event) => {
+            const trigger = event.target.closest('[data-sidebar-open]');
+
+            if (!trigger || !window.matchMedia(MOBILE).matches) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (!drawer) {
+                return;
+            }
+
+            drawer.setOpen(true);
+
+            const target = trigger.dataset.sidebarOpen === 'search'
+                ? drawer.sidebar.querySelector('#adminSearch')
+                : drawer.sidebar.querySelector('[data-sidebar-account]');
+
+            if (!target) {
+                return;
+            }
+
+            target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+
+            const field = target.matches('input') ? target : target.querySelector('a, button');
+
+            if (field) {
+                window.setTimeout(() => field.focus({ preventScroll: true }), 220);
+            }
+        });
+    }
+
+    function initSidebar() {
+        const current = shell();
+        const sidebar = current ? current.querySelector('[data-sidebar]') : null;
+        const toggle  = current ? current.querySelector('[data-sidebar-toggle]') : null;
+
+        if (!current || !sidebar || !toggle) {
+            return;
+        }
+
+        const shade = current.querySelector('[data-sidebar-backdrop]');
+        const isOpen = () => current.classList.contains('is-sidebar-open');
+
+        let lastFocus = null;
+
         const setOpen = (open) => {
-            shell.classList.toggle('is-sidebar-open', open);
+            if (open === isOpen()) {
+                return;
+            }
+
+            current.classList.toggle('is-sidebar-open', open);
             toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            document.body.classList.toggle('is-nav-locked', open);
 
             if (shade) {
                 shade.hidden = !open;
             }
+
+            if (open) {
+                lastFocus = document.activeElement;
+
+                const closer = sidebar.querySelector('[data-sidebar-close]');
+
+                if (closer) {
+                    closer.focus({ preventScroll: true });
+                }
+            } else if (lastFocus && document.contains(lastFocus)) {
+                lastFocus.focus({ preventScroll: true });
+                lastFocus = null;
+            }
         };
 
-        toggle.addEventListener('click', () => {
-            setOpen(!shell.classList.contains('is-sidebar-open'));
-        });
+        drawer = { sidebar, setOpen, isOpen };
+
+        // Un shell déjà branché (swap instantané) ne reboucle pas ses
+        // écouteurs ; seul le pointeur `drawer` est rafraîchi.
+        if (current.dataset.navReady === '1') {
+            return;
+        }
+
+        current.dataset.navReady = '1';
+
+        toggle.addEventListener('click', () => setOpen(!isOpen()));
 
         if (shade) {
             shade.addEventListener('click', () => setOpen(false));
         }
 
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
+        sidebar.querySelectorAll('[data-sidebar-close]').forEach((node) => {
+            node.addEventListener('click', () => setOpen(false));
+        });
+
+        // Choisir une destination referme le menu avant le changement de page.
+        sidebar.addEventListener('click', (event) => {
+            const link = event.target.closest('a[href]');
+
+            if (link && !link.hasAttribute('data-no-close')) {
                 setOpen(false);
             }
+        });
+
+        /* Balayage horizontal pour refermer, comme dans une application. */
+
+        let startX = 0;
+        let startY = 0;
+        let tracking = false;
+
+        const reset = () => {
+            tracking = false;
+            sidebar.style.transition = '';
+            sidebar.style.transform = '';
+        };
+
+        sidebar.addEventListener('touchstart', (event) => {
+            if (!isOpen() || event.touches.length !== 1) {
+                return;
+            }
+
+            startX = event.touches[0].clientX;
+            startY = event.touches[0].clientY;
+            tracking = true;
+        }, { passive: true });
+
+        sidebar.addEventListener('touchmove', (event) => {
+            if (!tracking || event.touches.length !== 1) {
+                return;
+            }
+
+            const dx = event.touches[0].clientX - startX;
+            const dy = Math.abs(event.touches[0].clientY - startY);
+
+            // Un défilement vertical ne doit jamais fermer le menu.
+            if (dy > Math.abs(dx)) {
+                reset();
+                return;
+            }
+
+            if (dx > -10) {
+                return;
+            }
+
+            sidebar.style.transition = 'none';
+            sidebar.style.transform = 'translateX(' + (dx * 0.55) + 'px)';
+        }, { passive: true });
+
+        sidebar.addEventListener('touchend', (event) => {
+            if (!tracking) {
+                return;
+            }
+
+            const touch = event.changedTouches ? event.changedTouches[0] : null;
+            const dx = touch ? touch.clientX - startX : 0;
+
+            reset();
+
+            if (dx < -64) {
+                setOpen(false);
+            }
+        }, { passive: true });
+
+        sidebar.addEventListener('touchcancel', reset, { passive: true });
+
+        // Retour en paysage large : le menu n'a plus lieu d'être.
+        const wide = window.matchMedia('(min-width: 901px)');
+        const onWide = (event) => { if (event.matches) { setOpen(false); } };
+
+        if (wide.addEventListener) {
+            wide.addEventListener('change', onWide);
+        } else if (wide.addListener) {
+            wide.addListener(onWide);
+        }
+
+        bindGlobalSidebar();
+    }
+
+    /* ── Tableaux denses : libellés pour la version carte ─────── */
+
+    function initTables() {
+        document.querySelectorAll('.admin-table').forEach((table) => {
+            // Les grilles éditables (tailles/variantes) restent des tableaux.
+            if (table.dataset.cardsReady === '1' || table.hasAttribute('data-no-cards')) {
+                return;
+            }
+
+            const heads = Array.from(table.querySelectorAll('thead tr:first-child > *'))
+                .map((cell) => (cell.textContent || '').trim());
+
+            if (heads.length === 0) {
+                return;
+            }
+
+            table.dataset.cardsReady = '1';
+            table.classList.add('admin-table--cards');
+
+            table.querySelectorAll('tbody tr').forEach((row) => {
+                const cells = Array.from(row.children).filter((cell) => cell.tagName === 'TD');
+
+                cells.forEach((cell, index) => {
+                    if (index === 0) {
+                        // La première colonne sert de titre à la carte.
+                        cell.classList.add('is-head');
+                        cell.dataset.label = '';
+                        return;
+                    }
+
+                    if (cell.dataset.label === undefined) {
+                        cell.dataset.label = heads[index] || '';
+                    }
+                });
+            });
+        });
+    }
+
+    /* ── Filtres de liste : repliés sur mobile ─────────────────── */
+
+    function initFilters() {
+        const mobile = window.matchMedia(MOBILE);
+        const label  = (window.Wylde && window.Wylde.locale === 'en') ? 'Filters' : 'Filtres';
+
+        document.querySelectorAll('form.admin-filter').forEach((form) => {
+            if (form.dataset.filterReady === '1') {
+                return;
+            }
+
+            form.dataset.filterReady = '1';
+
+            const button = document.createElement('button');
+
+            button.type = 'button';
+            button.className = 'admin-filter__toggle';
+            button.setAttribute('aria-expanded', 'false');
+            button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+                + '<path d="m6 9 6 6 6-6"/></svg><span></span>';
+            button.querySelector('span').textContent = label;
+
+            const apply = () => {
+                const collapsed = mobile.matches;
+
+                form.classList.toggle('is-collapsed', collapsed);
+                button.hidden = !collapsed;
+                button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            };
+
+            button.addEventListener('click', () => {
+                const open = button.getAttribute('aria-expanded') === 'true';
+
+                form.classList.toggle('is-collapsed', open);
+                button.setAttribute('aria-expanded', open ? 'false' : 'true');
+            });
+
+            if (mobile.addEventListener) {
+                mobile.addEventListener('change', apply);
+            } else if (mobile.addListener) {
+                mobile.addListener(apply);
+            }
+
+            if (form.parentNode) {
+                form.parentNode.insertBefore(button, form);
+            }
+
+            apply();
         });
     }
 
@@ -119,6 +416,12 @@
                 body.appendChild(tpl.content.cloneNode(true));
             });
         }
+
+        if (variantsBound) {
+            return;
+        }
+
+        variantsBound = true;
 
         // Suppression d'une ligne. La dernière ligne est vidée plutôt que
         // retirée : une taille vide est ignorée par le validateur, et
@@ -576,6 +879,12 @@
     /* ── État de chargement des boutons de formulaire ──────────── */
 
     function initLoading() {
+        if (loadingBound) {
+            return;
+        }
+
+        loadingBound = true;
+
         document.addEventListener('submit', (event) => {
             if (event.defaultPrevented) {
                 return;
@@ -623,6 +932,8 @@
 
     function boot() {
         initSidebar();
+        initTables();
+        initFilters();
         initBulk();
         initVariants();
         initMediaManager();
@@ -634,5 +945,17 @@
         document.addEventListener('DOMContentLoaded', boot);
     } else {
         boot();
+    }
+
+    // La navigation instantanée remplace le DOM : elle redemande un
+    // amorçage plutôt que de recharger les scripts.
+    window.Wylde = window.Wylde || {};
+
+    window.Wylde.admin = Object.assign(window.Wylde.admin || {}, {
+        refresh: boot
+    });
+
+    if (typeof window.Wylde.onSwap === 'function') {
+        window.Wylde.onSwap(boot);
     }
 })();

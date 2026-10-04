@@ -65,7 +65,7 @@ final class ProfileController extends AdminController
         $result = AuditLog::paginate([], $page, 30);
 
         return $this->view('admin/profile/security', [
-            'title' => __('admin.security'),
+            'title' => __('admin.security_title'),
             'user'  => $user,
             'actions' => AuditLog::actions(),
             'logs'  => $result['logs'],

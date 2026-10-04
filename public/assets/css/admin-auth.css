@@ -1,0 +1,598 @@
+/* ══════════════════════════════════════════════════════════════════
+   WYLDE — admin-auth.css
+   Connexion au back-office. Page autonome, pensée d'abord pour le
+   mobile : fond noir animé, carte en verre dépoli, halos de focus et
+   libellés flottants. Palette noir & blanc (cf. §9.1).
+   ══════════════════════════════════════════════════════════════════ */
+
+.admin-login-body {
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: #0A0A0A;
+    color: #fff;
+    overflow-x: hidden;
+}
+
+.alx {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding:
+        calc(var(--w-space-6) + env(safe-area-inset-top))
+        calc(var(--w-space-4) + env(safe-area-inset-right))
+        calc(var(--w-space-6) + env(safe-area-inset-bottom))
+        calc(var(--w-space-4) + env(safe-area-inset-left));
+    isolation: isolate;
+}
+
+/* ── Fond animé ──────────────────────────────────────────────── */
+
+.alx__bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    background: radial-gradient(120% 90% at 50% 0%, #1C1C1C 0%, #0A0A0A 55%, #000 100%);
+}
+
+.alx__orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.5;
+    will-change: transform;
+}
+
+.alx__orb--a {
+    top: -14vh;
+    left: -12vw;
+    width: 62vw;
+    height: 62vw;
+    background: radial-gradient(circle, rgb(255 255 255 / 0.22), transparent 68%);
+    animation: alx-drift-a 16s ease-in-out infinite;
+}
+
+.alx__orb--b {
+    top: 34vh;
+    right: -18vw;
+    width: 70vw;
+    height: 70vw;
+    background: radial-gradient(circle, rgb(255 255 255 / 0.14), transparent 70%);
+    animation: alx-drift-b 20s ease-in-out infinite;
+}
+
+.alx__orb--c {
+    bottom: -20vh;
+    left: 18vw;
+    width: 66vw;
+    height: 66vw;
+    background: radial-gradient(circle, rgb(255 255 255 / 0.10), transparent 72%);
+    animation: alx-drift-c 24s ease-in-out infinite;
+}
+
+@keyframes alx-drift-a {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50%      { transform: translate3d(8vw, 10vh, 0) scale(1.12); }
+}
+
+@keyframes alx-drift-b {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); }
+    50%      { transform: translate3d(-10vw, -8vh, 0) scale(0.92); }
+}
+
+@keyframes alx-drift-c {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(0.95); }
+    50%      { transform: translate3d(6vw, -12vh, 0) scale(1.1); }
+}
+
+.alx__grid {
+    position: absolute;
+    inset: -10%;
+    background-image:
+        linear-gradient(rgb(255 255 255 / 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgb(255 255 255 / 0.055) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(110% 80% at 50% 35%, #000 15%, transparent 78%);
+    animation: alx-pan 26s linear infinite;
+}
+
+@keyframes alx-pan {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(44px, 44px, 0); }
+}
+
+/* Balayage lumineux très lent sur toute la page. */
+.alx__sweep {
+    position: absolute;
+    top: -40%;
+    left: -60%;
+    width: 45%;
+    height: 180%;
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.07), transparent);
+    transform: rotate(14deg);
+    animation: alx-sweep 11s ease-in-out infinite;
+}
+
+@keyframes alx-sweep {
+    0%        { transform: translateX(-40%) rotate(14deg); }
+    55%, 100% { transform: translateX(320%) rotate(14deg); }
+}
+
+/* ── Colonne principale ──────────────────────────────────────── */
+
+.alx__main {
+    width: 100%;
+    max-width: 480px;
+    margin-inline: auto;
+}
+
+.alx__card {
+    position: relative;
+    padding: clamp(1.5rem, 6vw, 2.5rem);
+    border: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 26px;
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.03));
+    box-shadow:
+        0 30px 70px rgb(0 0 0 / 0.55),
+        inset 0 1px 0 rgb(255 255 255 / 0.14);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    animation: alx-rise 620ms var(--w-spring) both;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+    .alx__card { background: #141414; }
+}
+
+.alx__card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.16), transparent 28%);
+    pointer-events: none;
+    mask-image: linear-gradient(#000, transparent 55%);
+}
+
+@keyframes alx-rise {
+    from { opacity: 0; transform: translate3d(0, 22px, 0) scale(0.98); }
+    to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* ── Marque ──────────────────────────────────────────────────── */
+
+.alx__brand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--w-space-3);
+    margin-bottom: var(--w-space-6);
+    animation: alx-rise 620ms var(--w-spring) 60ms both;
+}
+
+.alx__logo {
+    position: relative;
+    display: inline-flex;
+    overflow: hidden;
+    padding: 2px;
+}
+
+.alx__logo img { height: 26px; width: auto; }
+
+.alx__logo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 35%, rgb(255 255 255 / 0.85) 50%, transparent 65%);
+    transform: translateX(-120%);
+    animation: alx-shimmer 3.6s ease-in-out 700ms infinite;
+}
+
+@keyframes alx-shimmer {
+    0%        { transform: translateX(-120%); }
+    45%, 100% { transform: translateX(120%); }
+}
+
+.alx__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border: 1px solid rgb(255 255 255 / 0.18);
+    border-radius: var(--w-radius-pill);
+    background: rgb(255 255 255 / 0.06);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.82);
+    white-space: nowrap;
+}
+
+.alx__badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 0 rgb(255 255 255 / 0.6);
+    animation: alx-beacon 2.4s ease-out infinite;
+}
+
+@keyframes alx-beacon {
+    0%   { box-shadow: 0 0 0 0 rgb(255 255 255 / 0.55); }
+    70%  { box-shadow: 0 0 0 9px rgb(255 255 255 / 0); }
+    100% { box-shadow: 0 0 0 0 rgb(255 255 255 / 0); }
+}
+
+/* ── Titres ──────────────────────────────────────────────────── */
+
+.alx__title {
+    margin: 0;
+    font-size: clamp(1.6rem, 7vw, 2.1rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.08;
+    animation: alx-rise 620ms var(--w-spring) 120ms both;
+}
+
+.alx__subtitle {
+    margin: var(--w-space-2) 0 0;
+    color: rgb(255 255 255 / 0.62);
+    font-size: var(--w-size-sm);
+    animation: alx-rise 620ms var(--w-spring) 170ms both;
+}
+
+/* ── Alertes ─────────────────────────────────────────────────── */
+
+.admin-login-body .alert {
+    margin: var(--w-space-4) 0 0;
+    background: rgb(255 255 255 / 0.06);
+    border-color: rgb(255 255 255 / 0.16);
+    color: #fff;
+}
+
+.alx-alert {
+    display: flex;
+    align-items: center;
+    gap: var(--w-space-2);
+    margin: var(--w-space-4) 0 0;
+    padding: var(--w-space-3) var(--w-space-4);
+    border: 1px solid rgb(255 255 255 / 0.16);
+    border-left: 3px solid #fff;
+    border-radius: var(--w-radius);
+    background: rgb(255 255 255 / 0.06);
+    font-size: var(--w-size-sm);
+    animation: alx-shake 520ms var(--w-ease) both;
+}
+
+@keyframes alx-shake {
+    0%, 100% { transform: translateX(0); }
+    18%      { transform: translateX(-7px); }
+    36%      { transform: translateX(6px); }
+    54%      { transform: translateX(-4px); }
+    72%      { transform: translateX(2px); }
+}
+
+/* ── Formulaire ──────────────────────────────────────────────── */
+
+.alx-form {
+    display: grid;
+    gap: var(--w-space-4);
+    margin-top: var(--w-space-6);
+    animation: alx-rise 620ms var(--w-spring) 220ms both;
+}
+
+.alx-field {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--w-space-3);
+    min-height: 58px;
+    padding: 0 var(--w-space-4);
+    border: 1px solid rgb(255 255 255 / 0.16);
+    border-radius: 16px;
+    background: rgb(255 255 255 / 0.05);
+    transition:
+        border-color var(--w-t-base),
+        background var(--w-t-base),
+        box-shadow var(--w-t-base),
+        transform var(--w-t-fast);
+}
+
+/* Halo permanent très discret, renforcé au focus. */
+.alx-field::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 0 0 0 0 rgb(255 255 255 / 0);
+    transition: box-shadow var(--w-t-base);
+    pointer-events: none;
+}
+
+.alx-field:focus-within {
+    background: rgb(255 255 255 / 0.09);
+    border-color: rgb(255 255 255 / 0.55);
+    box-shadow: 0 14px 34px rgb(0 0 0 / 0.4);
+}
+
+.alx-field:focus-within::before { box-shadow: 0 0 0 4px rgb(255 255 255 / 0.10); }
+
+.alx-field.is-error {
+    border-color: var(--w-danger);
+    background: rgb(198 40 40 / 0.10);
+}
+
+.alx-field.is-shaking { animation: alx-shake 520ms var(--w-ease) both; }
+
+.alx-icon {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 auto;
+    stroke: rgb(255 255 255 / 0.55);
+    stroke-width: 1.6;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke var(--w-t-base), transform var(--w-t-spring);
+}
+
+.alx-field:focus-within .alx-icon {
+    stroke: #fff;
+    transform: scale(1.08);
+}
+
+.alx-input {
+    width: 100%;
+    min-height: 56px;
+    padding: 18px 0 6px;
+    background: none;
+    border: 0;
+    color: #fff;
+    font-size: 1rem;
+    letter-spacing: 0.01em;
+}
+
+.alx-input:focus,
+.alx-input:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.alx-input:-webkit-autofill {
+    -webkit-text-fill-color: #fff;
+    caret-color: #fff;
+    transition: background-color 9999s ease-out 0s;
+}
+
+.alx-label {
+    position: absolute;
+    left: calc(var(--w-space-4) + 32px);
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgb(255 255 255 / 0.55);
+    font-size: 1rem;
+    pointer-events: none;
+    transform-origin: left top;
+    transition:
+        transform var(--w-t-base),
+        color var(--w-t-base),
+        opacity var(--w-t-base);
+}
+
+.alx-input:focus + .alx-label,
+.alx-input:not(:placeholder-shown) + .alx-label,
+.alx-field.is-filled .alx-label {
+    transform: translateY(-160%) scale(0.72);
+    color: rgb(255 255 255 / 0.5);
+}
+
+.alx-input:focus + .alx-label { color: #fff; }
+
+.alx-eye {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background var(--w-t-fast), transform var(--w-t-fast);
+}
+
+.alx-eye:hover { background: rgb(255 255 255 / 0.12); }
+.alx-eye:active { transform: scale(0.9); }
+
+.alx-caps {
+    grid-column: 1 / -1;
+    margin: 0 0 var(--w-space-2);
+    font-size: var(--w-size-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.6);
+}
+
+.alx-error {
+    grid-column: 1 / -1;
+    margin: 0 0 var(--w-space-2);
+    font-size: var(--w-size-xs);
+    color: #FF8A80;
+    animation: alx-fade-in var(--w-t-base) both;
+}
+
+@keyframes alx-fade-in {
+    from { opacity: 0; transform: translateY(-3px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Bouton ──────────────────────────────────────────────────── */
+
+.alx-submit {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--w-space-2);
+    min-height: 58px;
+    margin-top: var(--w-space-2);
+    padding: 0 var(--w-space-6);
+    overflow: hidden;
+    background: #fff;
+    color: #0A0A0A;
+    border: 0;
+    border-radius: 16px;
+    font-size: var(--w-size-base);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    box-shadow: 0 14px 30px rgb(0 0 0 / 0.4);
+    transition: transform var(--w-t-spring), box-shadow var(--w-t-spring),
+                opacity var(--w-t-fast);
+}
+
+.alx-submit:hover { transform: translateY(-2px); box-shadow: 0 20px 40px rgb(0 0 0 / 0.5); }
+.alx-submit:active { transform: translateY(0) scale(0.99); }
+
+.alx-submit .alx-icon {
+    stroke: #0A0A0A;
+    transition: transform var(--w-t-spring);
+}
+
+.alx-submit:hover .alx-icon { transform: translateX(3px); }
+
+.alx-submit__wave {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 38%, rgb(10 10 10 / 0.12) 50%, transparent 62%);
+    transform: translateX(-120%);
+    animation: alx-sweep-btn 3.4s ease-in-out infinite;
+}
+
+@keyframes alx-sweep-btn {
+    0%        { transform: translateX(-120%); }
+    50%, 100% { transform: translateX(120%); }
+}
+
+.alx-submit[data-loading] { pointer-events: none; }
+
+.alx-submit[data-loading]::before {
+    content: "";
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border: 2px solid #0A0A0A;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: w-spin 0.7s linear infinite;
+}
+
+.alx-submit[data-loading] .alx-submit__label,
+.alx-submit[data-loading] .alx-icon { opacity: 0; }
+
+/* ── Réassurance ─────────────────────────────────────────────── */
+
+.alx-trust {
+    display: grid;
+    gap: var(--w-space-2);
+    margin: var(--w-space-5) 0 0;
+    padding: var(--w-space-4) 0 0;
+    border-top: 1px solid rgb(255 255 255 / 0.10);
+    list-style: none;
+}
+
+.alx-trust li {
+    display: flex;
+    align-items: center;
+    gap: var(--w-space-3);
+    color: rgb(255 255 255 / 0.55);
+    font-size: var(--w-size-xs);
+    letter-spacing: 0.02em;
+    animation: alx-rise 520ms var(--w-spring) both;
+}
+
+.alx-trust li:nth-child(1) { animation-delay: 300ms; }
+.alx-trust li:nth-child(2) { animation-delay: 350ms; }
+.alx-trust li:nth-child(3) { animation-delay: 400ms; }
+
+.alx-trust .alx-icon {
+    width: 16px;
+    height: 16px;
+    stroke: rgb(255 255 255 / 0.7);
+}
+
+/* ── Pied ────────────────────────────────────────────────────── */
+
+.alx__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--w-space-2);
+    margin-top: var(--w-space-5);
+    color: rgb(255 255 255 / 0.45);
+    font-size: var(--w-size-xs);
+    text-align: center;
+    animation: alx-fade-in 700ms var(--w-t-base) 500ms both;
+}
+
+.alx__foot a {
+    color: rgb(255 255 255 / 0.8);
+    border-bottom: 1px solid rgb(255 255 255 / 0.25);
+    transition: color var(--w-t-fast), border-color var(--w-t-fast);
+}
+
+.alx__foot a:hover {
+    color: #fff;
+    border-bottom-color: #fff;
+}
+
+.alx__lang {
+    font-weight: 700;
+    letter-spacing: 0.12em;
+}
+
+.alx__credit a {
+    font-weight: 600;
+    color: #fff;
+}
+
+/* ── Large : la carte gagne en largeur, la scène respire ─────── */
+
+@media (min-width: 640px) {
+    .alx__main { max-width: 520px; }
+
+    .alx__card { border-radius: 32px; }
+}
+
+/* ── Préférence système : aucune animation (§9.2) ───────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .alx__orb,
+    .alx__grid,
+    .alx__sweep,
+    .alx__logo::after,
+    .alx__badge-dot,
+    .alx-submit__wave {
+        animation: none !important;
+    }
+
+    .alx__card,
+    .alx__brand,
+    .alx__title,
+    .alx__subtitle,
+    .alx-form,
+    .alx-trust li,
+    .alx__foot,
+    .alx-alert {
+        animation: none !important;
+        opacity: 1;
+        transform: none;
+    }
+}

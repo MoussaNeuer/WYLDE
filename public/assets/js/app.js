@@ -9,7 +9,7 @@
     'use strict';
 
     const root = document.documentElement;
-    const CSRF = root.dataset.csrf || '';
+    let CSRF = root.dataset.csrf || '';
     const LOCALE = root.dataset.locale || 'fr';
 
     /* ── Jeton CSRF : lu et mis à jour après chaque réponse ─────── */
@@ -180,7 +180,15 @@
 
     /* ── Confirmation avant action destructive (§16) ────────────── */
 
+    let confirmationsBound = false;
+
     function initConfirmations() {
+        if (confirmationsBound) {
+            return;
+        }
+
+        confirmationsBound = true;
+
         document.addEventListener('submit', (event) => {
             const form = event.target;
 
@@ -206,7 +214,15 @@
 
     /* ── État de chargement des boutons de formulaire ───────────── */
 
+    let loadingBound = false;
+
     function initLoading() {
+        if (loadingBound) {
+            return;
+        }
+
+        loadingBound = true;
+
         document.addEventListener('submit', (event) => {
             if (event.defaultPrevented) {
                 return;
@@ -338,6 +354,8 @@
 
     /* ── Barre d'en-tête : ombre au défilement ──────────────────── */
 
+    let headerBound = false;
+
     function initHeader() {
         const header = document.querySelector('[data-header]');
 
@@ -346,24 +364,441 @@
         }
 
         const onScroll = () => {
-            header.classList.toggle('is-stuck', window.scrollY > 8);
+            const current = document.querySelector('[data-header]');
+
+            if (current) {
+                current.classList.toggle('is-stuck', window.scrollY > 8);
+            }
         };
 
         onScroll();
+
+        if (headerBound) {
+            return;
+        }
+
+        headerBound = true;
+
         window.addEventListener('scroll', onScroll, { passive: true });
     }
 
+    /* ══════════════════════════════════════════════════════════════
+       NAVIGATION INSTANTANÉE
+       Les liens internes sont récupérés en arrière-plan (au survol, au
+       focus ou au toucher) puis la page est remplacée sans rechargement.
+       C'est un simple confort : sans JavaScript, ou en cas d'échec du
+       réseau, le navigateur reprend la main avec location.assign.
+       ══════════════════════════════════════════════════════════════ */
+
+    const NAV_MAX_CACHE = 24;
+    const NAV_TIMEOUT = 9000;
+
+    // Les scripts déjà chargés ne sont pas rejoués lors d'un échange.
+    const loaded = new Set(
+        Array.from(document.querySelectorAll('script[src]')).map((s) => s.src)
+    );
+
+    const cache = new Map();
+    const hooks = [];
+    let navReady = false;
+    let progress = null;
+
+    function progressBar() {
+        if (progress) {
+            return progress;
+        }
+
+        progress = document.createElement('div');
+        progress.className = 'nav-progress';
+        progress.setAttribute('aria-hidden', 'true');
+        progress.innerHTML = '<span></span>';
+
+        // Rattachée à <html> et non à <body> : un échange de page remplace
+        // le contenu du body, la barre doit survivre.
+        document.documentElement.appendChild(progress);
+
+        return progress;
+    }
+
+    function progressOn() {
+        progressBar().classList.add('is-active');
+    }
+
+    function progressOff() {
+        progressBar().classList.remove('is-active');
+    }
+
+    /**
+     * Un lien est-il eligible à la navigation instantanée ?
+     */
+    function navUrl(link) {
+        if (!link || link.hasAttribute('download') || link.hasAttribute('target')) {
+            return null;
+        }
+
+        if (link.dataset.noFastNav !== undefined) {
+            return null;
+        }
+
+        // Une confirmation doit passer par un vrai clic (fenêtre système).
+        if (link.dataset.confirmLink !== undefined) {
+            return null;
+        }
+
+        const raw = link.getAttribute('href');
+
+        // Les ancres restent au navigateur : elles ne changent pas de page.
+        if (!raw || raw === '#' || raw.startsWith('#')) {
+            return null;
+        }
+
+        let url;
+
+        try {
+            url = new URL(link.href, window.location.href);
+        } catch (e) {
+            return null;
+        }
+
+        if (url.origin !== window.location.origin) {
+            return null;
+        }
+
+        // Le changement de langue et la déconnexion modifient des cookies :
+        // on laisse le navigateur faire son travail.
+        if (url.pathname.startsWith('/locale/') || url.pathname === '/logout') {
+            return null;
+        }
+
+        return url;
+    }
+
+    async function fetchPage(url) {
+        const cached = cache.get(url.href);
+
+        if (cached) {
+            // Rafraîchit la position LRU.
+            cache.delete(url.href);
+            cache.set(url.href, cached);
+
+            return cached;
+        }
+
+        const controller = typeof AbortController === 'function' ? new AbortController() : null;
+        const timer = window.setTimeout(() => controller && controller.abort(), NAV_TIMEOUT);
+
+        try {
+            const response = await fetch(url.href, {
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'text/html',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                signal: controller ? controller.signal : undefined
+            });
+
+            if (!response.ok) {
+                return null;
+            }
+
+            // Une redirection vers la connexion doit être suivie normalement.
+            if (response.redirected && response.url !== url.href) {
+                return null;
+            }
+
+            const html = await response.text();
+
+            if (html.indexOf('<html') === -1 && html.indexOf('<body') === -1) {
+                return null;
+            }
+
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+
+            cache.set(url.href, doc);
+
+            if (cache.size > NAV_MAX_CACHE) {
+                cache.delete(cache.keys().next().value);
+            }
+
+            return doc;
+        } catch (e) {
+            return null;
+        } finally {
+            window.clearTimeout(timer);
+        }
+    }
+
+    /** Ajoute les feuilles de style absentes (passage boutique → admin). */
+    function syncStyles(doc) {
+        doc.querySelectorAll('link[rel="stylesheet"][href]').forEach((link) => {
+            if (document.querySelector('link[rel="stylesheet"][href="' + link.href + '"]')) {
+                return;
+            }
+
+            const fresh = document.createElement('link');
+            fresh.rel = 'stylesheet';
+            fresh.href = link.href;
+
+            if (link.integrity) {
+                fresh.integrity = link.integrity;
+                fresh.crossOrigin = link.crossOrigin || 'anonymous';
+            }
+
+            document.head.appendChild(fresh);
+        });
+    }
+
+    /** Rejoue les scripts : les externes inconnus et les blocs inline. */
+    function runScripts(doc) {
+        doc.querySelectorAll('script[src]').forEach((old) => {
+            if (loaded.has(old.src)) {
+                return;
+            }
+
+            loaded.add(old.src);
+
+            const fresh = document.createElement('script');
+            fresh.src = old.src;
+
+            if (old.integrity) {
+                fresh.integrity = old.integrity;
+                fresh.crossOrigin = old.crossOrigin || 'anonymous';
+            }
+
+            document.body.appendChild(fresh);
+        });
+
+        // Les blocs inline (notifications flash) sont recréés à la main :
+        // un nœud importé est inerte.
+        doc.querySelectorAll('script:not([src])').forEach((old) => {
+            const fresh = document.createElement('script');
+
+            if (old.type) {
+                fresh.type = old.type;
+            }
+
+            fresh.textContent = old.textContent;
+
+            document.body.appendChild(fresh);
+        });
+    }
+
+    function swap(doc, url) {
+        document.title = doc.title;
+
+        const description = doc.querySelector('meta[name="description"]');
+
+        if (description) {
+            let meta = document.querySelector('meta[name="description"]');
+
+            if (!meta) {
+                meta = document.createElement('meta');
+                meta.setAttribute('name', 'description');
+                document.head.appendChild(meta);
+            }
+
+            meta.setAttribute('content', description.getAttribute('content') || '');
+        }
+
+        // Jeton CSRF et langue suivent la nouvelle page.
+        if (doc.documentElement.dataset.csrf) {
+            CSRF = doc.documentElement.dataset.csrf;
+            root.dataset.csrf = CSRF;
+        }
+
+        if (doc.documentElement.dataset.locale) {
+            root.dataset.locale = doc.documentElement.dataset.locale;
+        }
+
+        if (doc.documentElement.dataset.scope !== undefined) {
+            root.dataset.scope = doc.documentElement.dataset.scope;
+        }
+
+        syncStyles(doc);
+
+        // Les scripts sont rejoués séparément (importNode ne les exécute pas).
+        const nodes = Array.from(doc.body.childNodes)
+            .filter((node) => node.nodeName !== 'SCRIPT')
+            .map((node) => document.importNode(node, true));
+
+        document.body.replaceChildren(...nodes);
+
+        runScripts(doc);
+
+        if (url) {
+            history.pushState({ scroll: 0 }, '', url.href);
+        }
+
+        window.scrollTo(0, 0);
+
+        hooks.forEach((hook) => {
+            try {
+                hook(doc);
+            } catch (e) { /* un module ne doit pas casser la navigation */ }
+        });
+
+        refresh();
+
+        const main = document.querySelector('main, [role="main"]');
+
+        if (main) {
+            main.setAttribute('tabindex', '-1');
+            main.focus({ preventScroll: true });
+        }
+    }
+
+    let busy = false;
+
+    async function navigate(url) {
+        if (busy) {
+            return;
+        }
+
+        busy = true;
+        progressOn();
+
+        const doc = await fetchPage(url);
+
+        progressOff();
+        busy = false;
+
+        if (!doc) {
+            window.location.assign(url.href);
+            return;
+        }
+
+        history.replaceState({ scroll: window.scrollY }, '', window.location.href);
+
+        swap(doc, url);
+    }
+
+    function initFastNav() {
+        if (navReady) {
+            return;
+        }
+
+        navReady = true;
+
+        if (!('fetch' in window) || !('DOMParser' in window)) {
+            return;
+        }
+
+        if ('scrollRestoration' in history) {
+            history.scrollRestoration = 'manual';
+        }
+
+        let timer = null;
+
+        const warm = (link) => {
+            const url = navUrl(link);
+
+            if (!url || url.href === window.location.href) {
+                return;
+            }
+
+            if (cache.has(url.href)) {
+                return;
+            }
+
+            if (timer) {
+                window.clearTimeout(timer);
+            }
+
+            timer = window.setTimeout(() => { fetchPage(url); }, 90);
+        };
+
+        document.addEventListener('pointerover', (event) => {
+            if (event.pointerType === 'touch') {
+                return;
+            }
+
+            warm(event.target.closest('a[href]'));
+        }, { passive: true });
+
+        document.addEventListener('focusin', (event) => {
+            warm(event.target.closest('a[href]'));
+        });
+
+        document.addEventListener('touchstart', (event) => {
+            const link = event.target.closest('a[href]');
+            const url = link ? navUrl(link) : null;
+
+            if (url && !cache.has(url.href)) {
+                fetchPage(url);
+            }
+        }, { passive: true });
+
+        document.addEventListener('click', (event) => {
+            if (event.defaultPrevented || event.button !== 0) {
+                return;
+            }
+
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                return;
+            }
+
+            const link = event.target.closest('a[href]');
+            const url = navUrl(link);
+
+            if (!url || url.href === window.location.href) {
+                return;
+            }
+
+            event.preventDefault();
+
+            navigate(url);
+        });
+
+        window.addEventListener('popstate', (event) => {
+            const url = new URL(window.location.href);
+
+            fetchPage(url).then((doc) => {
+                if (!doc) {
+                    window.location.reload();
+                    return;
+                }
+
+                progressOn();
+                swap(doc, null);
+                progressOff();
+
+                window.scrollTo(0, (event.state && event.state.scroll) || 0);
+            });
+        });
+
+        progressBar();
+    }
+
+    window.Wylde.nav = {
+        go: (href) => {
+            const url = new URL(href, window.location.href);
+
+            navigate(url);
+        },
+        preload: (href) => fetchPage(new URL(href, window.location.href)),
+        clear: () => cache.clear()
+    };
+
+    window.Wylde.onSwap = (hook) => hooks.push(hook);
+
     /* ── Amorçage ───────────────────────────────────────────────── */
 
-    function boot() {
+    function refresh() {
         initHeader();
         initReveal();
         initCountUp();
+    }
+
+    function boot() {
+        refresh();
         initConfirmations();
         initLoading();
         initLocale();
         refreshCartCount();
+        initFastNav();
     }
+
+    window.Wylde.refresh = refresh;
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', boot);

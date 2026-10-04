@@ -71,16 +71,6 @@ $user        = auth();
     </div>
 </header>
 
-<?php if ($user && $user->isStaff()): ?>
-    <div class="staff-bar">
-        <div class="container">
-            <a href="<?= e(url('/admin')) ?>"><?= e(__('admin.dashboard')) ?></a>
-            <span class="staff-bar__sep" aria-hidden="true">·</span>
-            <a href="<?= e(url('/')) ?>"><?= e(__('admin.view_site')) ?></a>
-        </div>
-    </div>
-<?php endif; ?>
-
 <div class="offcanvas offcanvas-end mobile-nav" tabindex="-1" id="mobileNav"
      aria-labelledby="mobileNavLabel">
     <div class="offcanvas-header">

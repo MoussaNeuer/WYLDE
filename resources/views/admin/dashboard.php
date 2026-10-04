@@ -87,7 +87,7 @@ foreach ($series as $point) {
     <div class="admin-cols">
         <section class="admin-panel">
             <header class="admin-panel__head">
-                <h2 class="admin-panel__title"><?= e(__('admin.analytics')) ?></h2>
+                <h2 class="admin-panel__title"><?= e(__('admin.analytics_title')) ?></h2>
                 <a href="<?= e(url('/admin/analytics')) ?>" class="admin-panel__link"><?= e(__('common.details')) ?></a>
             </header>
 
@@ -156,7 +156,7 @@ foreach ($series as $point) {
 
         <section class="admin-panel">
             <header class="admin-panel__head">
-                <h2 class="admin-panel__title"><?= e(__('admin.analytics')) ?></h2>
+                <h2 class="admin-panel__title"><?= e(__('admin.analytics_title')) ?></h2>
             </header>
 
             <ul class="admin-list">

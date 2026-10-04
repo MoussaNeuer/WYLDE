@@ -2,7 +2,10 @@
 /**
  * Layout back-office.
  *
- * Sidebar fixe sur desktop, drawer animé sur mobile (§8.1).
+ * Desktop : sidebar fixe. Mobile (priorité) : la sidebar devient un drawer
+ * plein écran qui regroupe la recherche, la navigation, le profil de
+ * l'administrateur et la déconnexion. La barre du haut ne garde que trois
+ * actions tactiles : menu, recherche, compte.
  *
  * @var string $content
  */
@@ -11,9 +14,10 @@ use App\Core\Csrf;
 $title = $title ?? config('app.name', 'WYLDE');
 $user  = auth();
 $route = current_route() ?? '';
+$q     = (string) ($_GET['q'] ?? '');
 
 /** Icônes au trait (stroke), sans dépendance externe. */
-$icon = static function (string $name): string {
+$icon = static function (string $name, string $class = 'admin-nav__icon'): string {
     $paths = [
         'dashboard'  => '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
         'products'   => '<path d="M3 7.5 12 3l9 4.5-9 4.5-9-4.5Z"/><path d="M3 7.5V16l9 4.5 9-4.5V7.5"/><path d="M12 12v8.5"/>',
@@ -28,9 +32,14 @@ $icon = static function (string $name): string {
         'security'   => '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
         'external'   => '<path d="M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
         'menu'       => '<path d="M4 7h16M4 12h16M4 17h16"/>',
+        'close'      => '<path d="M6 6l12 12M18 6 6 18"/>',
+        'search'     => '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
+        'logout'     => '<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 8 6 12l4 4"/><path d="M6 12h9"/>',
+        'user'       => '<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
+        'chevron'    => '<path d="m9 6 6 6-6 6"/>',
     ];
 
-    return '<svg class="admin-sidebar__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+    return '<svg class="' . e($class) . '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
         . ($paths[$name] ?? '') . '</svg>';
 };
 
@@ -39,18 +48,20 @@ $nav = [
     ['group' => __('admin.products')],
     ['url' => '/admin/products', 'label' => __('admin.products'), 'icon' => 'products', 'match' => (bool) is_active('admin/products')],
     ['url' => '/admin/categories', 'label' => __('admin.categories'), 'icon' => 'categories', 'match' => (bool) is_active('admin/categories')],
-    ['url' => '/admin/inventory', 'label' => __('admin.inventory'), 'icon' => 'inventory', 'match' => (bool) is_active('admin/inventory')],
+    ['url' => '/admin/inventory', 'label' => __('admin.inventory_title'), 'icon' => 'inventory', 'match' => (bool) is_active('admin/inventory')],
     ['group' => __('admin.orders')],
     ['url' => '/admin/orders', 'label' => __('admin.orders'), 'icon' => 'orders', 'match' => (bool) is_active('admin/orders')],
     ['url' => '/admin/customers', 'label' => __('admin.customers'), 'icon' => 'customers', 'match' => (bool) is_active('admin/customers')],
-    ['group' => __('admin.analytics')],
-    ['url' => '/admin/analytics', 'label' => __('admin.analytics'), 'icon' => 'analytics', 'match' => (bool) is_active('admin/analytics')],
+    ['group' => __('admin.analytics_title')],
+    ['url' => '/admin/analytics', 'label' => __('admin.analytics_title'), 'icon' => 'analytics', 'match' => (bool) is_active('admin/analytics')],
     ['group' => __('admin.settings')],
     ['url' => '/admin/settings', 'label' => __('admin.settings'), 'icon' => 'settings', 'match' => (bool) is_active('admin/settings')],
     ['url' => '/admin/shipping-zones', 'label' => __('admin.shipping.title'), 'icon' => 'shipping', 'match' => (bool) is_active('admin/shipping-zones')],
     ['url' => '/admin/profile', 'label' => __('admin.profile'), 'icon' => 'profile', 'match' => (bool) is_active('admin/profile')],
-    ['url' => '/admin/security', 'label' => __('admin.security'), 'icon' => 'security', 'match' => (bool) is_active('admin/security')],
+    ['url' => '/admin/security', 'label' => __('admin.security_title'), 'icon' => 'security', 'match' => (bool) is_active('admin/security')],
 ];
+
+$email = (string) ($user?->email ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="<?= e(locale()) ?>" data-locale="<?= e(locale()) ?>" data-csrf="<?= e(Csrf::token()) ?>" data-scope="admin">
@@ -77,34 +88,79 @@ $nav = [
 
 <div class="admin-shell" data-shell>
 
-    <aside class="admin-sidebar" id="adminSidebar" data-sidebar>
-        <div class="admin-sidebar__brand">
-            <a href="<?= e(url('/admin')) ?>">
+    <div class="sidebar-backdrop" data-sidebar-backdrop hidden></div>
+
+    <aside class="admin-sidebar" id="adminSidebar" data-sidebar aria-label="<?= e(__('common.main_menu')) ?>">
+
+        <div class="admin-sidebar__top">
+            <a class="admin-sidebar__brand" href="<?= e(url('/admin')) ?>">
                 <img src="<?= e(asset('assets/images/logo/logo.svg')) ?>"
                      alt="<?= e(config('app.name', 'WYLDE')) ?>" width="65" height="26">
             </a>
+
+            <button class="admin-sidebar__close" type="button" data-sidebar-close
+                    aria-label="<?= e(__('admin.close_menu')) ?>">
+                <?= $icon('close') ?>
+            </button>
         </div>
 
-        <nav class="admin-sidebar__nav" aria-label="<?= e(__('common.main_menu')) ?>">
+        <form class="admin-search" action="<?= e(url('/admin/products')) ?>" method="get" role="search"
+              data-admin-search>
+            <label class="visually-hidden" for="adminSearch"><?= e(__('common.search')) ?></label>
+            <input type="search" id="adminSearch" name="q" inputmode="search"
+                   autocomplete="off"
+                   placeholder="<?= e(__('admin.search_placeholder')) ?>"
+                   aria-label="<?= e(__('admin.search_hint')) ?>"
+                   value="<?= e($q) ?>">
+            <span class="admin-search__icon" aria-hidden="true"><?= $icon('search', 'admin-search__glyph') ?></span>
+        </form>
+
+        <nav class="admin-nav" aria-label="<?= e(__('common.main_menu')) ?>">
             <?php foreach ($nav as $item): ?>
                 <?php if (isset($item['group'])): ?>
-                    <p class="admin-sidebar__group"><?= e($item['group']) ?></p>
+                    <p class="admin-nav__group"><?= e($item['group']) ?></p>
                     <?php continue; ?>
                 <?php endif; ?>
 
                 <a href="<?= e(url($item['url'])) ?>"
-                   class="<?= $item['match'] ? 'is-active' : '' ?>">
+                   class="admin-nav__link<?= $item['match'] ? ' is-active' : '' ?>"
+                   <?= $item['match'] ? 'aria-current="page"' : '' ?>>
                     <?= $icon($item['icon']) ?>
                     <span><?= e($item['label']) ?></span>
                 </a>
             <?php endforeach; ?>
         </nav>
 
-        <div class="admin-sidebar__foot">
-            <a href="<?= e(url('/')) ?>">
-                <?= $icon('external') ?>
-                <span><?= e(__('admin.view_site')) ?></span>
+        <div class="admin-account" data-sidebar-account>
+            <p class="admin-account__label"><?= e(__('admin.account')) ?></p>
+
+            <a class="admin-account__card" href="<?= e(url('/admin/profile')) ?>">
+                <span class="admin-account__avatar" aria-hidden="true"><?= e($user?->initials() ?? '?') ?></span>
+                <span class="admin-account__meta">
+                    <strong><?= e((string) ($user?->name ?? '')) ?></strong>
+                    <small><?= e($email) ?></small>
+                </span>
+                <?= $icon('chevron', 'admin-account__chevron') ?>
             </a>
+
+            <div class="admin-account__links">
+                <a href="<?= e(url('/admin/profile')) ?>">
+                    <?= $icon('profile') ?><span><?= e(__('admin.profile')) ?></span>
+                </a>
+                <a href="<?= e(url('/admin/security')) ?>">
+                    <?= $icon('security') ?><span><?= e(__('admin.security_title')) ?></span>
+                </a>
+                <a href="<?= e(url('/')) ?>" data-no-fast-nav>
+                    <?= $icon('external') ?><span><?= e(__('admin.view_site')) ?></span>
+                </a>
+            </div>
+
+            <form method="post" action="<?= e(url('/logout')) ?>" class="admin-account__logout-form">
+                <?= csrf_field() ?>
+                <button type="submit" class="admin-account__logout">
+                    <?= $icon('logout') ?><span><?= e(__('admin.logout')) ?></span>
+                </button>
+            </form>
         </div>
     </aside>
 
@@ -113,41 +169,41 @@ $nav = [
         <header class="admin-header">
             <button class="admin-header__burger" type="button" data-sidebar-toggle
                     aria-controls="adminSidebar" aria-expanded="false"
-                    aria-label="<?= e(__('common.toggle_menu')) ?>">
-                <?= $icon('menu') ?>
+                    aria-label="<?= e(__('admin.open_menu')) ?>">
+                <?= $icon('menu', 'admin-header__glyph') ?>
             </button>
 
-            <a class="admin-header__brand" href="<?= e(url('/admin')) ?>" aria-label="<?= e(config('app.name', 'WYLDE')) ?>">
-                <img src="<?= e(asset('assets/images/logo/logo.svg')) ?>" alt="" width="55" height="22">
-            </a>
+            <div class="admin-header__title">
+                <span class="admin-header__title-text"><?= e($title) ?></span>
+            </div>
 
-            <form class="admin-header__search" action="<?= e(url('/admin/products')) ?>" method="get" role="search">
-                <label class="visually-hidden" for="adminSearch"><?= e(__('common.search')) ?></label>
-                <input type="search" id="adminSearch" name="q"
-                       placeholder="<?= e(__('common.search')) ?>"
-                       value="<?= e((string) ($_GET['q'] ?? '')) ?>">
+            <form class="admin-search admin-search--inline" action="<?= e(url('/admin/products')) ?>" method="get" role="search">
+                <label class="visually-hidden" for="adminSearchInline"><?= e(__('common.search')) ?></label>
+                <input type="search" id="adminSearchInline" name="q" inputmode="search"
+                       autocomplete="off"
+                       placeholder="<?= e(__('admin.search_placeholder')) ?>"
+                       value="<?= e($q) ?>">
+                <span class="admin-search__icon" aria-hidden="true"><?= $icon('search', 'admin-search__glyph') ?></span>
             </form>
 
             <div class="admin-header__right">
-                <a class="admin-header__profile" href="<?= e(url('/admin/profile')) ?>">
-                    <span class="admin-header__initials" aria-hidden="true"><?= e($user?->initials() ?? '?') ?></span>
-                    <span class="admin-header__name"><?= e((string) ($user?->name ?? '')) ?></span>
-                </a>
+                <button class="admin-header__icon-btn admin-header__icon-btn--search" type="button" data-sidebar-open="search"
+                        aria-label="<?= e(__('common.search')) ?>">
+                    <?= $icon('search', 'admin-header__glyph') ?>
+                </button>
 
-                <form method="post" action="<?= e(url('/logout')) ?>">
-                    <?= csrf_field() ?>
-                    <button type="submit" class="admin-header__logout"><?= e(__('admin.logout')) ?></button>
-                </form>
+                <a class="admin-header__icon-btn" href="<?= e(url('/admin/profile')) ?>"
+                   data-sidebar-open="account" aria-label="<?= e(__('admin.account')) ?>">
+                    <span class="admin-header__initials" aria-hidden="true"><?= e($user?->initials() ?? '?') ?></span>
+                </a>
             </div>
         </header>
 
-        <main class="admin-content">
+        <main class="admin-content" id="adminContent">
             <?= $content ?>
         </main>
     </div>
 </div>
-
-<div class="sidebar-backdrop" data-sidebar-backdrop hidden></div>
 
 <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="true"></div>
 

@@ -167,7 +167,7 @@ $filterFields = (string) ob_get_clean();
                 <td class="is-end">
                     <div class="admin-table__actions">
                         <a class="btn btn-sm btn-outline-light"
-                           href="<?= e(url('/admin/products/' . $product->id() . '/media')) ?>"><?= e(__('admin.media')) ?></a>
+                           href="<?= e(url('/admin/products/' . $product->id() . '/media')) ?>"><?= e(__('admin.media_title')) ?></a>
                         <a class="btn btn-sm btn-outline-light"
                            href="<?= e(url('/admin/products/' . $product->id() . '/edit')) ?>"><?= e(__('common.edit')) ?></a>
                         <form method="post" action="<?= e(url('/admin/products/' . $product->id() . '/delete')) ?>"

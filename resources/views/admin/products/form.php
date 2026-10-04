@@ -58,7 +58,7 @@ $statusMap = [
         <div class="admin-page__tools">
             <?php if ($isEdit): ?>
                 <a class="btn btn-outline-light btn-sm"
-                   href="<?= e(url('/admin/products/' . $product->id() . '/media')) ?>"><?= e(__('admin.media')) ?></a>
+                   href="<?= e(url('/admin/products/' . $product->id() . '/media')) ?>"><?= e(__('admin.media_title')) ?></a>
             <?php endif; ?>
             <a class="btn btn-outline-light btn-sm" href="<?= e(url('/shop/' . ($isEdit ? $product->slug : ''))) ?>">
                 <?= e(__('admin.view_site')) ?>
@@ -134,7 +134,7 @@ $statusMap = [
                 <?php if ($isEdit): ?>
                     <div class="admin-panel__actions">
                         <a class="btn btn-sm btn-outline-light"
-                           href="<?= e(url('/admin/products/' . $product->id() . '/media')) ?>"><?= e(__('admin.media')) ?></a>
+                           href="<?= e(url('/admin/products/' . $product->id() . '/media')) ?>"><?= e(__('admin.media_title')) ?></a>
                     </div>
                 <?php endif; ?>
             </div>
@@ -261,7 +261,7 @@ $statusMap = [
             </div>
 
             <div class="table-scroll">
-                <table class="admin-table" data-variant-table>
+                <table class="admin-table" data-variant-table data-no-cards>
                     <thead>
                         <tr>
                             <th><?= e(__('admin.variants.size')) ?></th>

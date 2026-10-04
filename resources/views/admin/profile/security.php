@@ -27,7 +27,7 @@ $label = static function (string $action): string {
 <div class="admin-page">
 
     <header class="admin-page__head">
-        <h1 class="admin-page__title"><?= e(__('admin.security')) ?></h1>
+        <h1 class="admin-page__title"><?= e(__('admin.security_title')) ?></h1>
         <div class="admin-page__tools">
             <a class="btn btn-outline-light btn-sm"
                href="<?= e(url('/admin/profile')) ?>"><?= e(__('admin.profile')) ?></a>
@@ -37,7 +37,7 @@ $label = static function (string $action): string {
     <div class="admin-cols">
         <section class="admin-panel" id="password">
             <header class="admin-panel__head">
-                <h2 class="admin-panel__title"><?= e(__('admin.security')) ?></h2>
+                <h2 class="admin-panel__title"><?= e(__('admin.security_title')) ?></h2>
             </header>
 
             <form class="admin-filter__form" method="post" action="<?= e(url('/admin/security/password')) ?>">
