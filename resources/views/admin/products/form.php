@@ -7,10 +7,15 @@
  * index à variant_ids[], ce qui permet au contrôleur de mettre à jour
  * les lignes existantes sans les dupliquer.
  *
+ * Les tailles viennent du catalogue admin (ProductSize) : le champ est
+ * une liste déroulante, pas une saisie libre, et ProductValidator refuse
+ * toute valeur absente du catalogue.
+ *
  * @var \App\Models\Product|null $product
  * @var array<int, \App\Models\Category> $categories
  * @var array<int, string> $statuses
  * @var array<int, string> $labels
+ * @var array<int, string> $sizes
  * @var array<int, mixed>|null $variants
  */
 use App\Models\Product;
@@ -48,6 +53,26 @@ $statusMap = [
     'hidden'    => __('admin.product_status.hidden'),
     'archived'  => __('admin.product_status.archived'),
 ];
+
+/**
+ * Options d'une ligne de variante : le catalogue, plus la valeur déjà
+ * enregistrée si elle n'y est plus. Sans cette option de secours,
+ * enregistrer le produit changerait silencieusement la taille : la
+ * ligne est signalée pour que l'admin la remette au catalogue.
+ */
+$sizeOptions = static function (string $current) use ($sizes): array {
+    $options = [];
+
+    foreach ($sizes as $label) {
+        $options[$label] = $label;
+    }
+
+    if ($current !== '' && !isset($options[$current])) {
+        $options[$current] = $current . ' — ' . __('admin.sizes.not_in_catalog');
+    }
+
+    return $options;
+};
 ?>
 <div class="admin-page">
 
@@ -254,7 +279,12 @@ $statusMap = [
             <div class="admin-panel__head">
                 <h2 class="admin-panel__title"><?= e(__('admin.product.sizes')) ?></h2>
                 <div class="admin-panel__actions">
-                    <button type="button" class="btn btn-sm btn-outline-light" data-add-variant>
+                    <a class="btn btn-sm btn-light" href="<?= e(url('/admin/sizes')) ?>"
+                       target="_blank" rel="noopener">
+                        <?= e(__('admin.sizes.title')) ?>
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-light" data-add-variant
+                            <?= $sizes === [] ? ' disabled' : '' ?>>
                         + <?= e(__('admin.variants.add')) ?>
                     </button>
                 </div>
@@ -276,9 +306,17 @@ $statusMap = [
                             <tr data-variant-row>
                                 <td>
                                     <input type="hidden" name="variant_ids[]" value="<?= e((string) $row['id']) ?>">
-                                    <input type="text" name="sizes[]" maxlength="32"
-                                           value="<?= e((string) $row['size']) ?>"
-                                           aria-label="<?= e(__('admin.variants.size')) ?>">
+                                    <select name="sizes[]" data-variant-size
+                                            aria-label="<?= e(__('admin.variants.size')) ?>">
+                                        <?php if ($row['size'] === ''): ?>
+                                            <option value="" selected><?= e(__('admin.variants.pick_size')) ?></option>
+                                        <?php endif; ?>
+                                        <?php foreach ($sizeOptions((string) $row['size']) as $value => $label): ?>
+                                            <option value="<?= e($value) ?>"<?= (string) $row['size'] === $value ? ' selected' : '' ?>>
+                                                <?= e($label) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 </td>
                                 <td>
                                     <input type="text" name="sku_per_size[]" maxlength="64"
@@ -305,13 +343,20 @@ $statusMap = [
                 </table>
             </div>
 
-            <p class="admin-field__hint" style="padding:0.8rem 1.2rem"><?= e(__('admin.variants.empty')) ?></p>
+            <p class="admin-field__hint" style="padding:0.8rem 1.2rem">
+                <?= e($sizes === [] ? __('admin.sizes.empty_hint_form') : __('admin.variants.empty')) ?>
+            </p>
 
             <template data-variant-template>
                 <tr data-variant-row>
                     <td>
                         <input type="hidden" name="variant_ids[]" value="0">
-                        <input type="text" name="sizes[]" maxlength="32" aria-label="<?= e(__('admin.variants.size')) ?>">
+                        <select name="sizes[]" data-variant-size aria-label="<?= e(__('admin.variants.size')) ?>">
+                            <option value="" selected><?= e(__('admin.variants.pick_size')) ?></option>
+                            <?php foreach ($sizes as $label): ?>
+                                <option value="<?= e($label) ?>"><?= e($label) ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </td>
                     <td><input type="text" name="sku_per_size[]" maxlength="64" aria-label="<?= e(__('admin.variants.sku')) ?>"></td>
                     <td><input type="number" name="stock_per_size[]" min="0" value="0" aria-label="<?= e(__('admin.variants.stock')) ?>"></td>

@@ -41,6 +41,7 @@ $icon = static function (string $name, string $class = 'admin-nav__icon'): strin
         'help'       => '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 17h.01"/>',
         'plus'       => '<path d="M12 5v14M5 12h14"/>',
         'keyboard'   => '<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M9.5 10h.01M13 10h.01M16.5 10h.01M8 14h8"/>',
+        'sizes'      => '<path d="M3 6h18M3 12h18M3 18h18"/><path d="M7 3v6M17 9v6M11 15v6"/>',
     ];
 
     return '<svg class="' . e($class) . '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
@@ -71,6 +72,7 @@ $nav = [
     ['group' => __('admin.settings')],
     ['url' => '/admin/settings', 'label' => __('admin.settings'), 'icon' => 'settings', 'match' => (bool) is_active('admin/settings')],
     ['url' => '/admin/shipping-zones', 'label' => __('admin.shipping.title'), 'icon' => 'shipping', 'match' => (bool) is_active('admin/shipping-zones')],
+    ['url' => '/admin/sizes', 'label' => __('admin.sizes.title'), 'icon' => 'sizes', 'match' => (bool) is_active('admin/sizes')],
     ['url' => '/admin/profile', 'label' => __('admin.profile'), 'icon' => 'profile', 'match' => (bool) is_active('admin/profile')],
     ['url' => '/admin/security', 'label' => __('admin.security_title'), 'icon' => 'security', 'match' => (bool) is_active('admin/security')],
 ];

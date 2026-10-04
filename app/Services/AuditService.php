@@ -41,6 +41,9 @@ final class AuditService
     public const ACTION_ZONE_CREATE      = 'zone_create';
     public const ACTION_ZONE_UPDATE      = 'zone_update';
     public const ACTION_ZONE_DELETE      = 'zone_delete';
+    public const ACTION_SIZE_CREATE      = 'size_create';
+    public const ACTION_SIZE_UPDATE      = 'size_update';
+    public const ACTION_SIZE_DELETE      = 'size_delete';
 
     /**
      * Enregistre une action.

@@ -7,6 +7,7 @@ namespace App\Controllers\Admin;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
+use App\Models\ProductSize;
 use App\Models\ShippingZone;
 use App\Services\AuditService;
 use App\Services\SettingsService;
@@ -52,6 +53,10 @@ final class SettingsController extends AdminController
             'title'  => __('admin.settings'),
             'keys'   => self::KEYS,
             'values' => $values,
+            // Rappel du catalogue : le formulaire produit ne propose que
+            // ces tailles, la page dédiée reste le seul endroit où les
+            // ajouter ou en retirer.
+            'sizes_total' => ProductSize::total(),
         ]);
     }
 

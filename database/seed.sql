@@ -54,6 +54,19 @@ INSERT INTO `products`
      'Structure 6 panneaux, étiquette brodée ton sur ton. Taille réglable par bande auto-agrippante.', 9000, NULL, 3400, 'published', 'new', 'AC-OVR-O', 1, 0, 22, '2026-09-25 09:00:00')
 ON DUPLICATE KEY UPDATE `price` = VALUES(`price`), `status` = VALUES(`status`);
 
+-- ── Catalogue des tailles ────────────────────────────────────────────────
+-- Le catalogue est la source de vérité du formulaire produit : ces
+-- lignes sont ce que l'admin trouve dans la liste déroulante des
+-- tailles. L'ordre est celui d'affichage dans le sélecteur public.
+INSERT INTO `product_sizes` (`label`, `sort_order`) VALUES
+    ('F',   10),
+    ('S',   20),
+    ('M',   30),
+    ('L',   40),
+    ('XL',  50),
+    ('XXL', 60)
+ON DUPLICATE KEY UPDATE `sort_order` = VALUES(`sort_order`);
+
 -- ── Variantes ───────────────────────────────────────────────────────────
 -- T-shirts, vestes, pulls, chemises, casquette : S/M/L/XL (+XXL sur tee).
 -- Sacoche : variante UNIQUE.

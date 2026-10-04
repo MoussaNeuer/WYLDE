@@ -22,8 +22,14 @@ $hints  = [
         <div class="admin-page__tools">
             <a class="btn btn-outline-light btn-sm"
                href="<?= e(url('/admin/shipping-zones')) ?>"><?= e(__('admin.shipping.title')) ?></a>
+            <a class="btn btn-outline-light btn-sm" href="<?= e(url('/admin/sizes')) ?>">
+                <?= e(__('admin.sizes.title')) ?>
+                <span class="badge badge--default"><?= e((string) ($sizes_total ?? 0)) ?></span>
+            </a>
         </div>
     </header>
+
+    <p class="admin-field__hint"><?= e(__('admin.sizes.settings_hint')) ?></p>
 
     <form class="admin-form" method="post" action="<?= e(url('/admin/settings')) ?>">
         <?= csrf_field() ?>

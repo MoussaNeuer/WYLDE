@@ -220,6 +220,21 @@ $router->group(['admin'], 'admin');
         ->middleware(['csrf']);
     $router->post('/security/sessions/revoke', 'Admin\ProfileController@revokeSessions')
         ->middleware(['csrf']);
+
+    // ── Catalogue des tailles ───────────────────────────────────────────
+    // Ces tailles sont la seule source du formulaire produit : voir
+    // ProductValidator, qui refuse toute valeur absente du catalogue.
+    // « preset » est déclaré avant « {id} » : le routeur teste dans
+    // l'ordre d'enregistrement.
+    $router->get('/sizes',        'Admin\SizeController@index');
+    $router->post('/sizes',       'Admin\SizeController@store')
+        ->middleware(['csrf']);
+    $router->post('/sizes/preset', 'Admin\SizeController@storePreset')
+        ->middleware(['csrf']);
+    $router->post('/sizes/{id}', 'Admin\SizeController@update')
+        ->middleware(['csrf']);
+    $router->post('/sizes/{id}/delete', 'Admin\SizeController@destroy')
+        ->middleware(['csrf']);
 }
 $router->endGroup();
 

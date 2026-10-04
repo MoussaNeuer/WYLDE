@@ -9,6 +9,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductSize;
 use App\Services\AuditService;
 use App\Services\UploadService;
 use App\Validators\ProductValidator;
@@ -55,6 +56,7 @@ final class ProductController extends AdminController
             'categories' => Category::all('`name` ASC'),
             'statuses'   => ['draft', 'published', 'hidden', 'archived'],
             'labels'     => ['none', 'new', 'bestseller', 'limited'],
+            'sizes'      => ProductSize::labels(),
         ]);
     }
 
@@ -113,6 +115,7 @@ final class ProductController extends AdminController
             'categories' => Category::all('`name` ASC'),
             'statuses'   => ['draft', 'published', 'hidden', 'archived'],
             'labels'     => ['none', 'new', 'bestseller', 'limited'],
+            'sizes'      => ProductSize::labels(),
         ]);
     }
 

@@ -164,6 +164,27 @@ CREATE TABLE IF NOT EXISTS `product_variants` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ───────────────────────────────────────────────────────────────────────────
+--  product_sizes — catalogue des tailles proposées dans le back-office.
+--
+--  C'est l'admin qui définit les tailles disponibles : le formulaire
+--  produit ne propose que celles-ci. product_variants conserve le libellé
+--  en texte (size), pas une clé étrangère : un produit peut ainsi garder
+--  une taille même si l'admin la retire du catalogue, et l'affichage reste
+--  lisible en base. La suppression d'une taille utilisée est refusée par
+--  le contrôleur, qui compte d'abord les variantes concernées.
+-- ───────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `product_sizes` (
+    `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `label`      VARCHAR(20)  NOT NULL,
+    `sort_order` INT          NOT NULL DEFAULT 0,
+    `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_product_sizes_label` (`label`),
+    KEY `idx_product_sizes_sort` (`sort_order`, `label`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ───────────────────────────────────────────────────────────────────────────
 --  product_images — galerie, ordre modifiable par Drag & Drop
 --  path est relatif au dossier storage/uploads.
 -- ───────────────────────────────────────────────────────────────────────────
