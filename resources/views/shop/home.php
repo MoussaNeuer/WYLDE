@@ -14,7 +14,9 @@
 ?>
 <section class="hero">
     <div class="container">
-        <p class="hero__eyebrow"><?= e(config('app.name', 'WYLDE')) ?></p>
+        <p class="hero__eyebrow">
+            <img src="<?= e(asset('assets/images/logo/logo.png')) ?>" alt="<?= e(config('app.name', 'WYLDE')) ?>" width="85" height="34">
+        </p>
         <h1 class="hero__title"><?= e(__('app.tagline')) ?></h1>
         <a href="<?= e(url('/shop')) ?>" class="btn btn-light btn-lg"><?= e(__('nav.shop')) ?></a>
     </div>
@@ -22,7 +24,7 @@
 
 <?php if (!$dbOk): ?>
     <div class="container">
-        <div class="alert alert-dark" role="alert">
+        <div class="alert alert--error" role="alert">
             <?= e(__('errors.server')) ?>
         </div>
     </div>

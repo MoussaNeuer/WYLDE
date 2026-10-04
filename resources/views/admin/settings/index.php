@@ -8,8 +8,12 @@
 component('toast');
 
 $emails = ['shop_email'];
-$urls   = ['wave_payment_link'];
+$urls   = ['wave_payment_link', 'credit_url'];
 $phones = ['shop_phone'];
+$hints  = [
+    'credit_name' => 'Affiché dans le pied de page et sur les pages de connexion',
+    'credit_url'  => 'Laisser vide pour afficher le nom sans lien',
+];
 ?>
 <div class="admin-page">
 
@@ -45,10 +49,13 @@ $phones = ['shop_phone'];
                                 <input type="url" id="s-<?= e($key) ?>" name="<?= e($key) ?>"
                                        placeholder="https://"
                                        value="<?= e($values[$key] ?? '') ?>">
-                                <p class="admin-field__hint">https:// obligatoire</p>
+                                <p class="admin-field__hint"><?= e($hints[$key] ?? 'https:// obligatoire') ?></p>
                             <?php else: ?>
                                 <input type="text" id="s-<?= e($key) ?>" name="<?= e($key) ?>"
                                        value="<?= e($values[$key] ?? '') ?>">
+                                <?php if (isset($hints[$key])): ?>
+                                    <p class="admin-field__hint"><?= e($hints[$key]) ?></p>
+                                <?php endif; ?>
                             <?php endif; ?>
 
                             <?php if (has_error($key)): ?>

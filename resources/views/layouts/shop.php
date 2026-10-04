@@ -20,7 +20,7 @@ $isEn        = $locale === 'en';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#000000">
+    <meta name="theme-color" content="#FFFFFF">
 
     <title><?= e($title) ?></title>
 
@@ -32,8 +32,16 @@ $isEn        = $locale === 'en';
     <meta property="og:description" content="<?= e($description ?? __('app.tagline')) ?>">
     <meta property="og:type" content="website">
     <meta property="og:url" content="<?= e(url($currentPath ?? '/')) ?>">
+    <meta property="og:locale" content="<?= e(str_replace('-', '_', $locale)) ?>">
+    <meta property="og:image" content="<?= e(asset('assets/images/logo/og-image.png')) ?>">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="<?= e(config('app.name', 'WYLDE')) ?>">
 
-    <link rel="icon" href="<?= e(asset('assets/images/logo/favicon.svg')) ?>" type="image/svg+xml">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <?php component('app-icons'); ?>
 
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"

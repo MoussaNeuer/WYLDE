@@ -184,4 +184,64 @@ final class PageController extends Controller
         return Response::make($xml)
             ->setHeader('Content-Type', 'application/xml; charset=UTF-8');
     }
+
+    /**
+     * Manifeste PWA : permet d'installer la boutique sur l'écran d'accueil
+     * Android/iOS avec la même icône que l'onglet du navigateur.
+     *
+     * Le contenu est calculé (nom, slogan, langue) pour rester aligné sur la
+     * configuration, et non figé dans un fichier statique.
+     */
+    public function manifest(Request $request): Response
+    {
+        $icon = static fn (string $file): string => asset('assets/images/logo/' . $file);
+
+        $manifest = [
+            'name'             => (string) config('app.name', 'WYLDE'),
+            'short_name'       => mb_substr((string) config('app.name', 'WYLDE'), 0, 12),
+            'description'      => (string) __('app.tagline'),
+            'lang'             => locale(),
+            'dir'              => 'ltr',
+            'start_url'        => url('/'),
+            'scope'            => url('/'),
+            'display'          => 'standalone',
+            'orientation'      => 'portrait-primary',
+            'background_color' => '#FFFFFF',
+            'theme_color'      => '#FFFFFF',
+            'categories'       => ['shopping', 'lifestyle'],
+            'icons'            => [
+                [
+                    'src'     => $icon('favicon.svg'),
+                    'sizes'   => 'any',
+                    'type'    => 'image/svg+xml',
+                    'purpose' => 'any',
+                ],
+                [
+                    'src'   => $icon('icon-192.png'),
+                    'sizes' => '192x192',
+                    'type'  => 'image/png',
+                ],
+                [
+                    'src'   => $icon('icon-512.png'),
+                    'sizes' => '512x512',
+                    'type'  => 'image/png',
+                ],
+                [
+                    'src'     => $icon('icon-192-maskable.png'),
+                    'sizes'   => '192x192',
+                    'type'    => 'image/png',
+                    'purpose' => 'maskable',
+                ],
+                [
+                    'src'     => $icon('icon-512-maskable.png'),
+                    'sizes'   => '512x512',
+                    'type'    => 'image/png',
+                    'purpose' => 'maskable',
+                ],
+            ],
+        ];
+
+        return Response::json($manifest)
+            ->setHeader('Content-Type', 'application/manifest+json; charset=UTF-8');
+    }
 }

@@ -1,19 +1,19 @@
 /* ══════════════════════════════════════════════════════════════════
    WYLDE — base.css
    Fondations : reset, variables, typographie, accessibilité.
-   Palette strictement noir & blanc (cahier des charges §9.1).
+   Palette strictement blanc & noir (cahier des charges §9.1).
    Mobile-first : le style de base vise 360–430 px (§10).
    ══════════════════════════════════════════════════════════════════ */
 
 :root {
     /* Palette imposée par le cahier des charges */
-    --w-bg:            #000000;
-    --w-bg-alt:        #0B0B0B;
-    --w-surface:       #151515;
-    --w-text:          #FFFFFF;
-    --w-text-muted:    #A7A7A7;
-    --w-border:        #2A2A2A;
-    --w-accent:        #FFFFFF;
+    --w-bg:            #FFFFFF;
+    --w-bg-alt:        #F2F2F2;
+    --w-surface:       #F7F7F7;
+    --w-text:          #0A0A0A;
+    --w-text-muted:    #6B6B6B;
+    --w-border:        #E0E0E0;
+    --w-accent:        #0A0A0A;
 
     /* Couleurs fonctionnelles : uniquement quand l'information l'exige */
     --w-success:       #1F8A4C;
@@ -42,13 +42,31 @@
     --w-space-8: 5rem;
 
     /* Transitions courtes : 150–300 ms (§9.2) */
-    --w-t-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-    --w-t-base: 220ms cubic-bezier(0.4, 0, 0.2, 1);
-    --w-t-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    --w-ease:    cubic-bezier(0.4, 0, 0.2, 1);
+    --w-spring:  cubic-bezier(0.22, 1, 0.36, 1);
+    --w-t-fast:  150ms var(--w-ease);
+    --w-t-base:  220ms var(--w-ease);
+    --w-t-slow:  300ms var(--w-ease);
+    --w-t-spring: 420ms var(--w-spring);
 
-    --w-radius: 0;
+    /* Rayons — esthétique douce et moderne */
+    --w-radius-sm:  8px;
+    --w-radius:     12px;
+    --w-radius-lg:  20px;
+    --w-radius-xl:  28px;
+    --w-radius-pill: 999px;
+
+    /* Élévation — profondeur sans couleur, uniquement de l'ombre */
+    --w-shadow-xs: 0 1px 2px rgb(10 10 10 / 0.05);
+    --w-shadow-sm: 0 2px 8px rgb(10 10 10 / 0.06);
+    --w-shadow:    0 10px 30px rgb(10 10 10 / 0.08);
+    --w-shadow-lg: 0 24px 60px rgb(10 10 10 / 0.14);
+    --w-ring:      0 0 0 4px rgb(10 10 10 / 0.08);
+
     --w-container: 1320px;
     --w-tap: 44px; /* taille tactile minimale (§10) */
+
+    --w-header-h: 68px;
 }
 
 /* ── Reset ──────────────────────────────────────────────────────── */
@@ -175,6 +193,20 @@ hr {
 
 .text-muted { color: var(--w-text-muted); }
 
+/* ── Utilitaires de mise en page ────────────────────────────────── */
+
+.stack { display: grid; gap: var(--w-space-4); }
+.stack--sm { gap: var(--w-space-2); }
+.stack--lg { gap: var(--w-space-6); }
+.cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--w-space-3); }
+.cluster--end { justify-content: flex-end; }
+.cluster--between { justify-content: space-between; }
+.grid-auto {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    gap: var(--w-space-4);
+}
+
 .visually-hidden {
     position: absolute;
     width: 1px; height: 1px;
@@ -188,7 +220,7 @@ hr {
 /* ── Animations ─────────────────────────────────────────────────── */
 
 @keyframes w-fade-up {
-    from { opacity: 0; transform: translateY(12px); }
+    from { opacity: 0; transform: translateY(16px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -197,12 +229,85 @@ hr {
     to   { opacity: 1; }
 }
 
-.reveal {
-    opacity: 0;
-    animation: w-fade-up var(--w-t-slow) forwards;
+@keyframes w-pop {
+    0%   { opacity: 0; transform: scale(0.94); }
+    60%  { opacity: 1; transform: scale(1.012); }
+    100% { opacity: 1; transform: scale(1); }
 }
 
-.is-visible { animation: w-fade-in var(--w-t-base) forwards; }
+@keyframes w-slide-right {
+    from { opacity: 0; transform: translateX(-14px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes w-slide-up-lg {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes w-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-10px); }
+}
+
+@keyframes w-spin { to { transform: rotate(360deg); } }
+
+@keyframes w-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.45; }
+}
+
+@keyframes w-pan {
+    from { background-position: 0% 50%; }
+    to   { background-position: 200% 50%; }
+}
+
+/* Révélation : l'élément s'anime dès le chargement (dégradation sans JS)
+   puis l'observateur IntersectionObserver ajoute .is-visible pour les
+   éléments entrés dans le viewport. Le délai est piloté par --d. */
+.reveal {
+    opacity: 0;
+    animation: w-fade-up var(--w-t-spring) forwards;
+    animation-delay: var(--d, 0ms);
+}
+
+.reveal.is-visible { animation: w-fade-up var(--w-t-spring) forwards; }
+
+/* Apparition en cascade pour les listes et grilles */
+.stagger > * { animation: w-fade-up var(--w-t-spring) both; }
+.stagger > *:nth-child(1) { animation-delay: 40ms; }
+.stagger > *:nth-child(2) { animation-delay: 90ms; }
+.stagger > *:nth-child(3) { animation-delay: 140ms; }
+.stagger > *:nth-child(4) { animation-delay: 190ms; }
+.stagger > *:nth-child(5) { animation-delay: 240ms; }
+.stagger > *:nth-child(6) { animation-delay: 290ms; }
+.stagger > *:nth-child(7) { animation-delay: 340ms; }
+.stagger > *:nth-child(8) { animation-delay: 390ms; }
+.stagger > *:nth-child(n + 9) { animation-delay: 440ms; }
+
+/* Utilitaires d'interaction */
+.hover-lift {
+    transition: transform var(--w-t-spring), box-shadow var(--w-t-spring);
+}
+
+.hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--w-shadow);
+}
+
+.page-enter { animation: w-fade-up var(--w-t-spring) both; }
+
+/* Spinner universel (boutons, chargements) */
+.spinner {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: w-spin 0.7s linear infinite;
+    vertical-align: -0.15em;
+}
 
 /* Respect strict de la préférence système (§9.2) */
 @media (prefers-reduced-motion: reduce) {
@@ -217,14 +322,15 @@ hr {
         scroll-behavior: auto !important;
     }
 
-    .reveal { opacity: 1; }
+    .reveal,
+    .stagger > * { opacity: 1; }
 }
 
 /* ── Chargement ─────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: no-preference) {
     .skeleton {
-        background: linear-gradient(90deg, var(--w-surface) 25%, #1F1F1F 50%, var(--w-surface) 75%);
+        background: linear-gradient(90deg, var(--w-surface) 25%, #E6E6E6 50%, var(--w-surface) 75%);
         background-size: 200% 100%;
         animation: w-skeleton 1.4s ease-in-out infinite;
         border-radius: var(--w-radius);

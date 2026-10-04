@@ -563,6 +563,8 @@ return [
         'privacy' => 'Politique de confidentialité',
         'terms'   => 'Conditions générales',
 
+        'credit_by' => 'Site créé par',
+
         'about_intro' => 'WYLDE est une marque de streetwear sénégalaise. Nous produisons et distribuons des pièces en série limitée, pensées et confectionnées à Dakar.',
 
         'about_identity_title' => 'Notre identité',

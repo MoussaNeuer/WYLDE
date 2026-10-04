@@ -31,7 +31,14 @@ final class SettingsController extends AdminController
         'shop_phone'        => 'Téléphone',
         'shop_address'      => 'Adresse',
         'wave_payment_link' => 'Lien Wave Business',
+        'credit_name'       => 'Crédit « site créé par »',
+        'credit_url'        => 'Lien du site du créateur',
     ];
+
+    /**
+     * Clés attendues sous forme d'URL (https obligatoire).
+     */
+    private const URL_KEYS = ['wave_payment_link', 'credit_url'];
 
     public function index(Request $request): Response
     {
@@ -55,9 +62,9 @@ final class SettingsController extends AdminController
         foreach (self::KEYS as $key => $label) {
             $value = trim($request->str($key));
 
-            if ($key === 'wave_payment_link' && $value !== '' && !str_starts_with($value, 'https://')) {
+            if (in_array($key, self::URL_KEYS, true) && $value !== '' && !str_starts_with($value, 'https://')) {
                 return $this->redirectWithErrors('/admin/settings', [
-                    $key => 'Le lien Wave doit commencer par https://',
+                    $key => 'Le lien doit commencer par https://',
                 ], $request->all());
             }
 

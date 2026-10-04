@@ -13,7 +13,8 @@
 ?>
 <section class="section">
     <div class="container">
-        <header class="page-head">
+        <header class="page-head reveal">
+            <p class="page-head__eyebrow"><?= e(__('account.title')) ?></p>
             <h1 class="page-head__title"><?= e(__('account.orders')) ?></h1>
             <p class="page-head__text">
                 <?= e(trans_choice('account.orders_count', $total)) ?>
@@ -21,7 +22,7 @@
         </header>
 
         <?php if ($orders === []): ?>
-            <div class="empty-state">
+            <div class="empty-state reveal">
                 <p class="empty-state__title"><?= e(__('account.no_orders')) ?></p>
                 <p class="empty-state__text"><?= e(__('account.no_orders_text')) ?></p>
                 <a class="btn btn-light" href="<?= e(url('/shop')) ?>">
@@ -29,7 +30,7 @@
                 </a>
             </div>
         <?php else: ?>
-            <div class="table-scroll">
+            <div class="table-scroll reveal">
                 <table class="data-table">
                     <thead>
                         <tr>

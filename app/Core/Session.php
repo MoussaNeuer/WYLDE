@@ -12,6 +12,17 @@ final class Session
 {
     private static bool $started = false;
 
+    /**
+     * Erreurs et anciennes saisies déjà retirées de la session pour la
+     * requête en cours (évite de les perdre entre deux champs du formulaire).
+     *
+     * @var array<string, string>|null
+     */
+    private static ?array $pulledErrors = null;
+
+    /** @var array<string, mixed>|null */
+    private static ?array $pulledOld = null;
+
     public static function start(): void
     {
         if (self::$started || PHP_SAPI === 'cli' || session_status() === PHP_SESSION_ACTIVE) {
@@ -168,24 +179,45 @@ final class Session
     {
         $_SESSION['_errors'] = $errors;
         $_SESSION['_old']     = $oldInput;
+
+        self::$pulledErrors = null;
+        self::$pulledOld    = null;
     }
 
-    /** @return array<string, string> */
+    /**
+     * Erreurs de validation de la requête courante.
+     *
+     * Les valeurs sont retirées de la session au premier appel (elles ne
+     * doivent pas survivre à la requête) mais mises en mémoire pour la
+     * durée de celle-ci : une vue appelle souvent has_error() puis
+     * error_for() sur plusieurs champs, et chaque appel doit voir les mêmes
+     * erreurs.
+     *
+     * @return array<string, string>
+     */
     public static function pullErrors(): array
     {
+        if (self::$pulledErrors !== null) {
+            return self::$pulledErrors;
+        }
+
         $errors = $_SESSION['_errors'] ?? [];
         unset($_SESSION['_errors']);
 
-        return $errors;
+        return self::$pulledErrors = $errors;
     }
 
     /** @return array<string, mixed> */
     public static function pullOldInput(): array
     {
+        if (self::$pulledOld !== null) {
+            return self::$pulledOld;
+        }
+
         $old = $_SESSION['_old'] ?? [];
         unset($_SESSION['_old']);
 
-        return $old;
+        return self::$pulledOld = $old;
     }
 
     public static function id(): string
@@ -222,6 +254,8 @@ final class Session
         }
 
         self::$started = false;
+        self::$pulledErrors = null;
+        self::$pulledOld    = null;
     }
 
     public static function isStarted(): bool

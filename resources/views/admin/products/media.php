@@ -2,16 +2,16 @@
 /**
  * Galerie d'un produit : dépôt, réorganisation, image principale.
  *
- * Le réordonnancement se fait par glisser-déposer ou avec les flèches du
- * clavier (admin.js) ; l'ordre courant est de toute façon soumis par POST,
- * donc l'image principale et la suppression fonctionnent sans JavaScript.
+ * La galerie fonctionne en asynchrone (admin.js) : le dépôt par
+ * glisser-déposer, la promotion en image principale, la suppression et le
+ * réordonnancement mettent à jour la page sans rechargement.
  *
  * @var \App\Models\Product $product
  * @var array<int, \App\Models\ProductImage> $images
  */
 component('toast');
 
-$mediaUrl = url('/admin/products/' . $product->id() . '/media');
+$productId = (int) $product->id();
 ?>
 <div class="admin-page">
 
@@ -21,38 +21,28 @@ $mediaUrl = url('/admin/products/' . $product->id() . '/media');
         <h1 class="admin-page__title"><?= e(__('admin.media')) ?></h1>
         <div class="admin-page__tools">
             <a class="btn btn-outline-light btn-sm"
-               href="<?= e(url('/admin/products/' . $product->id() . '/edit')) ?>"><?= e(__('common.edit')) ?></a>
+               href="<?= e(url('/admin/products/' . $productId . '/edit')) ?>"><?= e(__('common.edit')) ?></a>
         </div>
     </header>
 
-    <p><strong><?= e($product->name) ?></strong></p>
+    <section class="admin-panel" data-media-manager
+             data-mode="async"
+             data-product-id="<?= e((string) $productId) ?>"
+             data-upload-url="<?= e(url('/api/admin/products/' . $productId . '/media')) ?>"
+             data-reorder-url="<?= e(url('/api/admin/products/' . $productId . '/media/reorder')) ?>">
+        <div class="admin-panel__head">
+            <h2 class="admin-panel__title"><?= e($product->name) ?></h2>
+        </div>
 
-    <form method="post" action="<?= e($mediaUrl) ?>" enctype="multipart/form-data" data-media-upload>
-        <?= csrf_field() ?>
+        <div class="admin-panel__head" style="display:block;padding:1.2rem">
+            <label class="media-drop" data-media-drop for="f-images">
+                <span class="media-drop__icon" aria-hidden="true">↑</span>
+                <strong><?= e(__('admin.product.images')) ?></strong>
+                <span class="media-drop__hint"><?= e(__('admin.media.hint')) ?></span>
+                <input type="file" id="f-images" name="images[]" accept="image/jpeg,image/png,image/webp" multiple hidden>
+            </label>
 
-        <label class="media-drop" for="f-images" data-drop>
-            <strong><?= e(__('admin.product.images')) ?></strong>
-            <span><?= e(__('admin.media.hint')) ?></span>
-            <input type="file" id="f-images" name="images[]" accept="image/*" multiple hidden>
-        </label>
-
-        <?php if (has_error('files')): ?>
-            <p class="admin-field__error"><?= e((string) error_for('files')) ?></p>
-        <?php endif; ?>
-
-        <button type="submit" class="btn btn-light btn-sm"><?= e(__('common.save')) ?></button>
-    </form>
-
-    <?php if ($images === []): ?>
-        <?php component('empty-state', [
-            'title' => __('admin.media.empty'),
-        ]); ?>
-    <?php else: ?>
-        <form method="post" action="<?= e(url('/admin/products/' . $product->id() . '/media/reorder')) ?>"
-              data-media-reorder>
-            <?= csrf_field() ?>
-
-            <ul class="media-grid is-sortable" data-media-list>
+            <ul class="media-grid is-sortable" data-media-gallery>
                 <?php foreach ($images as $image): ?>
                     <li data-media-item data-image-id="<?= e((string) $image->id) ?>">
                         <img src="<?= e(upload_url((string) $image->path)) ?>" alt="" loading="lazy">
@@ -61,44 +51,25 @@ $mediaUrl = url('/admin/products/' . $product->id() . '/media');
                             <span class="media-grid__primary"><?= e(__('admin.media.primary')) ?></span>
                         <?php endif; ?>
 
-                        <div class="media-grid__actions">
-                            <input type="hidden" name="order[]" value="<?= e((string) $image->id) ?>">
-
+                        <div class="media-tile__overlay">
                             <?php if ((int) $image->is_primary !== 1): ?>
-                                <button type="submit" class="btn btn-sm btn-outline-light"
-                                        form="primaryForm<?= e((string) $image->id) ?>"
-                                        aria-label="<?= e(__('admin.media.make_primary')) ?>"
-                                        title="<?= e(__('admin.media.make_primary')) ?>">
-                                    ★
-                                </button>
+                                <button type="button" class="icon-btn" data-media-primary
+                                        title="<?= e(__('admin.media.make_primary')) ?>"
+                                        aria-label="<?= e(__('admin.media.make_primary')) ?>">★</button>
                             <?php endif; ?>
 
-                            <button type="submit" class="btn btn-sm btn-danger"
-                                    form="deleteForm<?= e((string) $image->id) ?>"
-                                    aria-label="<?= e(__('common.delete')) ?>"
-                                    data-confirm="<?= e(__('common.confirm')) ?>">×</button>
+                            <button type="button" class="icon-btn icon-btn--danger" data-media-delete
+                                    data-confirm="<?= e(__('common.confirm')) ?>"
+                                    title="<?= e(__('common.delete')) ?>"
+                                    aria-label="<?= e(__('common.delete')) ?>">×</button>
                         </div>
                     </li>
                 <?php endforeach; ?>
             </ul>
 
-            <button type="submit" class="btn btn-light btn-sm" data-media-save>
-                <?= e(__('admin.media.save_order')) ?>
-            </button>
-        </form>
-
-        <?php foreach ($images as $image): ?>
-            <?php if ((int) $image->is_primary !== 1): ?>
-                <form id="primaryForm<?= e((string) $image->id) ?>" method="post" hidden
-                      action="<?= e(url('/admin/products/' . $product->id() . '/media/' . $image->id . '/primary')) ?>">
-                    <?= csrf_field() ?>
-                </form>
-            <?php endif; ?>
-
-            <form id="deleteForm<?= e((string) $image->id) ?>" method="post" hidden
-                  action="<?= e(url('/admin/products/' . $product->id() . '/media/' . $image->id . '/delete')) ?>">
-                <?= csrf_field() ?>
-            </form>
-        <?php endforeach; ?>
-    <?php endif; ?>
+            <p class="media-drop__hint" data-media-empty<?= $images === [] ? '' : ' hidden' ?>>
+                <?= e(__('admin.media.empty')) ?>
+            </p>
+        </div>
+    </section>
 </div>

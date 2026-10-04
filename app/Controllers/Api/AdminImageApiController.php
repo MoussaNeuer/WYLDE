@@ -141,6 +141,40 @@ final class AdminImageApiController extends Controller
         return $this->json(['count' => count($order), 'order' => $order]);
     }
 
+    /** Définit l'image principale d'un produit. */
+    public function primary(Request $request): Response
+    {
+        $imageId = $this->id($request, 'imageId');
+
+        $row = Database::selectOne(
+            'SELECT `id`, `product_id` FROM `product_images` WHERE `id` = :id LIMIT 1',
+            ['id' => $imageId]
+        );
+
+        if ($row === null) {
+            abort(404);
+        }
+
+        $productId = (int) $row['product_id'];
+
+        Database::transaction(function () use ($productId, $imageId): void {
+            Database::update('product_images', ['is_primary' => 0], ['product_id' => $productId]);
+            Database::update('product_images', ['is_primary' => 1], [
+                'id'         => $imageId,
+                'product_id' => $productId,
+            ]);
+        });
+
+        AuditService::log(AuditService::ACTION_MEDIA_PRIMARY, 'products', $productId, [
+            'image_id' => $imageId,
+        ]);
+
+        return $this->json([
+            'primary'    => $imageId,
+            'product_id' => $productId,
+        ]);
+    }
+
     /** Suppression d'une image, quel que soit son produit. */
     public function destroy(Request $request): Response
     {
@@ -177,9 +211,18 @@ final class AdminImageApiController extends Controller
             ]);
         });
 
+        $primary = (int) Database::selectValue(
+            'SELECT `id` FROM `product_images`
+             WHERE `product_id` = :pid AND `is_primary` = 1
+             ORDER BY sort_order ASC, id ASC
+             LIMIT 1',
+            ['pid' => $productId]
+        );
+
         return $this->json([
             'deleted'    => (int) $row['id'],
             'product_id' => $productId,
+            'primary'    => $primary,
         ]);
     }
 }

@@ -392,12 +392,16 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- Lien de paiement Wave Business (lien global, cf. décision Phase 1).
+-- credit_name / credit_url : mention « site créé par » dans le pied de page
+-- et sur les pages de connexion, modifiable depuis l'admin.
 INSERT INTO `settings` (`key`, `value`) VALUES
     ('wave_payment_link', ''),
     ('shop_email',        'contact@wylde.sn'),
     ('shop_phone',        ''),
     ('shop_address',      ''),
-    ('free_shipping_threshold', '0')
+    ('free_shipping_threshold', '0'),
+    ('credit_name',       'Jef Tech'),
+    ('credit_url',        '')
 ON DUPLICATE KEY UPDATE `value` = `value`;
 
 -- Zone de livraison initiale : Sénégal / Dakar = 2 000 FCFA.

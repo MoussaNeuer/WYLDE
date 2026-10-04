@@ -188,7 +188,7 @@
                 return;
             }
 
-            const message = form.dataset.confirm;
+            const message = (event.submitter && event.submitter.dataset.confirm) || form.dataset.confirm;
 
             if (message && !window.confirm(message)) {
                 event.preventDefault();
@@ -202,6 +202,124 @@
                 event.preventDefault();
             }
         });
+    }
+
+    /* ── État de chargement des boutons de formulaire ───────────── */
+
+    function initLoading() {
+        document.addEventListener('submit', (event) => {
+            if (event.defaultPrevented) {
+                return;
+            }
+
+            const form = event.target;
+
+            if (!(form instanceof HTMLFormElement) || form.dataset.noLoading !== undefined) {
+                return;
+            }
+
+            const submit = event.submitter || form.querySelector('button[type="submit"]');
+
+            if (!submit || submit.disabled || submit.dataset.loading === '1') {
+                return;
+            }
+
+            window.requestAnimationFrame(() => {
+                submit.dataset.loading = '1';
+                submit.disabled = true;
+            });
+        });
+    }
+
+    /* ── Compteur animé des indicateurs (stat-card) ──────────────── */
+
+    /**
+     * Anime les nombres des cartes d'indicateur en conservant la mise en
+     * forme d'origine (séparateurs de milliers, suffixe de devise).
+     */
+    function initCountUp() {
+        const nodes = document.querySelectorAll('[data-count-up]');
+
+        if (nodes.length === 0) {
+            return;
+        }
+
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        if (reduce || !('IntersectionObserver' in window)) {
+            return;
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) {
+                    return;
+                }
+
+                observer.unobserve(entry.target);
+                countUp(entry.target);
+            });
+        }, { threshold: 0.2 });
+
+        nodes.forEach((node) => observer.observe(node));
+
+        function countUp(el) {
+            const text = (el.textContent || '').trim();
+
+            // On ne s'intéresse qu'à un entier, avec ou sans séparateurs.
+            const match = text.match(/\d[\d    ]*\d|\d/);
+
+            if (!match) {
+                return;
+            }
+
+            const raw = match[0];
+
+            if (!/^\d[\d\s]*\d?$/.test(raw)) {
+                return; // séparateur inattendu : valeur laissée intacte
+            }
+
+            // « 3,50 » ou « 1,234.56 » : la virgule suit le groupe, donc
+            // le nombre n'est pas un entier et ne doit pas être animé.
+            if (/^[.,]\d/.test(text.slice(match.index + raw.length))) {
+                return;
+            }
+
+            const target = parseInt(raw.replace(/[\s   ]/g, ''), 10);
+
+            if (!Number.isFinite(target) || target === 0) {
+                return;
+            }
+
+            const width = raw.replace(/[^0-9]/g, '').length;
+            const render = (value) => {
+                let digits = String(value).padStart(width, '0');
+                let index = 0;
+                let out = '';
+
+                for (const char of raw) {
+                    out += char >= '0' && char <= '9' ? digits[index++] : char;
+                }
+
+                return text.slice(0, match.index) + out + text.slice(match.index + raw.length);
+            };
+
+            const duration = 750;
+            const start = performance.now();
+
+            const step = (now) => {
+                const progress = Math.min((now - start) / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+
+                el.textContent = render(Math.round(target * eased));
+
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                }
+            };
+
+            requestAnimationFrame(step);
+        }
     }
 
     /* ── Bascule de langue : persistance immédiate ──────────────── */
@@ -240,7 +358,9 @@
     function boot() {
         initHeader();
         initReveal();
+        initCountUp();
         initConfirmations();
+        initLoading();
         initLocale();
         refreshCartCount();
     }

@@ -24,6 +24,17 @@ final class Request
     /** @var array<string, string> */
     private array $routeParams = [];
 
+    /**
+     * Derniers paramètres de route définis par le routeur.
+     *
+     * Request::capture() crée une instance neuve : les helpers comme
+     * current_route(), appelés depuis une vue, ne verraient donc jamais
+     * la route courante. On conserve la dernière définition ici.
+     *
+     * @var array<string, string>
+     */
+    private static array $lastRouteParams = [];
+
     private function __construct()
     {
     }
@@ -385,12 +396,17 @@ final class Request
 
     public function routeParam(string $key, ?string $default = null): ?string
     {
-        return $this->routeParams[$key] ?? $default;
+        if (array_key_exists($key, $this->routeParams)) {
+            return $this->routeParams[$key];
+        }
+
+        return self::$lastRouteParams[$key] ?? $default;
     }
 
     /** @param array<string, string> $params */
     public function setRouteParams(array $params): void
     {
-        $this->routeParams = $params;
+        $this->routeParams       = $params;
+        self::$lastRouteParams   = $params;
     }
 }

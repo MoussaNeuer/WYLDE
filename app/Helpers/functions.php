@@ -577,6 +577,33 @@ if (!function_exists('setting')) {
     }
 }
 
+if (!function_exists('site_credit')) {
+    /**
+     * Crédit du créateur du site, affiché aux visiteurs.
+     *
+     * Le nom et le lien se modifient dans l'admin (Paramètres), ce qui évite
+     * de toucher au code pour changer de mention. Sans lien renseigné, seul
+     * le nom est affiché.
+     *
+     * @return array{name: string, url: ?string}
+     */
+    function site_credit(): array
+    {
+        $name = trim((string) setting('credit_name', 'Jef Tech'));
+        $url  = trim((string) setting('credit_url', ''));
+
+        // On n'accepte qu'une URL http(s) : pas de javascript: ni de data:.
+        if ($url !== '' && !preg_match('#^https?://#i', $url)) {
+            $url = '';
+        }
+
+        return [
+            'name' => $name,
+            'url'  => $url !== '' ? $url : null,
+        ];
+    }
+}
+
 if (!function_exists('stock_status')) {
     /**
      * Statut de stock d'un produit.

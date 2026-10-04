@@ -9,16 +9,16 @@
 <section class="section">
     <div class="container">
         <header class="page-head">
-            <h1 class="page-head__title"><?= e(__('account.title')) ?></h1>
-            <p class="page-head__text><?= e($user?->name ?? '') ?></p>
+            <p class="page-head__eyebrow"><?= e(__('account.title')) ?></p>
+            <h1 class="page-head__title"><?= e((string) ($user?->name ?? '')) ?></h1>
         </header>
 
         <?php foreach (\App\Core\Session::pullFlash() as $flash): ?>
             <div class="alert alert--<?= e($flash['type']) ?>" role="alert"><?= e($flash['message']) ?></div>
         <?php endforeach; ?>
 
-        <div class="grid-2">
-            <section class="card-surface">
+        <div class="grid-2 stagger">
+            <section class="card-surface hover-lift">
                 <header class="card-surface__head">
                     <h2 class="card-surface__title"><?= e(__('account.summary_title')) ?></h2>
                 </header>
@@ -30,17 +30,17 @@
                         </div>
                         <div>
                             <dt><?= e(__('account.total_spent')) ?></dt>
-                            <dd><?= money($totalSpent) ?></dd>
+                            <dd><?= e(money($totalSpent)) ?></dd>
                         </div>
                     </dl>
 
-                    <a class="btn btn-outline-light btn-block" href="<?= e(url('/account/orders')) ?>">
+                    <a class="btn btn-light btn-block" href="<?= e(url('/account/orders')) ?>">
                         <?= e(__('account.view_orders')) ?>
                     </a>
                 </div>
             </section>
 
-            <section class="card-surface">
+            <section class="card-surface hover-lift">
                 <header class="card-surface__head">
                     <h2 class="card-surface__title"><?= e(__('account.profile_title')) ?></h2>
                 </header>

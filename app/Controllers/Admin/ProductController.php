@@ -94,6 +94,8 @@ final class ProductController extends AdminController
                 'name'   => $data['name'],
                 'status' => $data['status'],
             ]);
+
+            self::saveUploadedImages($product, $request);
         });
 
         return $this->redirectWithSuccess('/admin/products', __('flash.product_created'));
@@ -146,6 +148,8 @@ final class ProductController extends AdminController
                 'name'   => $data['name'],
                 'status' => $data['status'],
             ]);
+
+            self::saveUploadedImages($product, $request);
         });
 
         return $this->redirectWithSuccess('/admin/products', __('flash.product_updated'));
@@ -437,6 +441,60 @@ final class ProductController extends AdminController
                 UploadService::delete($path);
             }
         }
+    }
+
+    /**
+     * Enregistre les images téléversées avec le formulaire produit
+     * (glisser-déposer sur la fiche, création ou édition).
+     */
+    private static function saveUploadedImages(Product $product, Request $request): int
+    {
+        $bucket = $request->file('images') ?? $request->file('image');
+
+        if ($bucket === null) {
+            return 0;
+        }
+
+        $files = isset($bucket['name']) ? [$bucket] : array_values($bucket);
+
+        $count = 0;
+
+        foreach ($files as $single) {
+            if (!is_array($single) || (int) ($single['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                continue;
+            }
+
+            $result = UploadService::store(
+                $single,
+                (string) config('app.uploads.folder', 'products'),
+                (string) $product->name
+            );
+
+            if (!$result['ok']) {
+                continue;
+            }
+
+            $hasPrimary = (int) Database::selectValue(
+                'SELECT COUNT(*) FROM `product_images` WHERE `product_id` = :id AND `is_primary` = 1',
+                ['id' => $product->id()]
+            ) > 0;
+
+            Database::insert('product_images', [
+                'product_id' => (int) $product->id(),
+                'path'       => $result['path'],
+                'alt_text'   => null,
+                'sort_order' => 0,
+                'is_primary' => $hasPrimary ? 0 : 1,
+            ]);
+
+            $count++;
+        }
+
+        if ($count > 0) {
+            AuditService::log(AuditService::ACTION_MEDIA_UPLOAD, 'products', (int) $product->id(), ['count' => $count]);
+        }
+
+        return $count;
     }
 
     private static function auditFailed(string $action, array $errors): void

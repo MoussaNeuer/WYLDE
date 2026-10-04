@@ -22,7 +22,7 @@ $tag    = $tag ?? 'div';
     <?php endif; ?>
 
     <p class="stat-card__label"><?= e($label) ?></p>
-    <p class="stat-card__value"><?= e($value) ?></p>
+    <p class="stat-card__value" data-count-up><?= e($value) ?></p>
 
     <?php if ($hint !== null): ?>
         <p class="stat-card__hint<?= $trend !== null ? ' is-' . e($trend) : '' ?>">

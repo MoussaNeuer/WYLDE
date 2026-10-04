@@ -19,7 +19,8 @@ $tracking = trim((string) $order->tracking_number);
             ← <?= e(__('account.back_to_orders')) ?>
         </a>
 
-        <header class="page-head">
+        <header class="page-head reveal">
+            <p class="page-head__eyebrow"><?= e(__('account.orders')) ?></p>
             <h1 class="page-head__title"><?= e((string) $order->reference) ?></h1>
             <p class="page-head__text">
                 <?= e(__('order.placed_on')) ?>
@@ -27,7 +28,7 @@ $tracking = trim((string) $order->tracking_number);
             </p>
         </header>
 
-        <div class="card-surface">
+        <div class="card-surface reveal">
             <div class="card-surface__body">
                 <dl class="summary">
                     <div class="summary__row">

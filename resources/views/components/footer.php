@@ -3,13 +3,17 @@
  * Pied de page de la boutique.
  */
 $year = date('Y');
+$credit = site_credit();
 ?>
 <footer class="site-footer">
     <div class="container">
         <div class="site-footer__grid">
 
             <div class="site-footer__brand">
-                <p class="site-footer__logo"><?= e(config('app.name', 'WYLDE')) ?></p>
+                <p class="site-footer__logo">
+                    <img src="<?= e(asset('assets/images/logo/logo.png')) ?>"
+                         alt="<?= e(config('app.name', 'WYLDE')) ?>" width="70" height="28">
+                </p>
                 <p class="site-footer__tagline"><?= e(__('app.tagline')) ?></p>
             </div>
 
@@ -41,9 +45,24 @@ $year = date('Y');
 
         <div class="site-footer__bottom">
             <p>&copy; <?= e($year) ?> <?= e(config('app.name', 'WYLDE')) ?>. <?= e(__('page.terms')) ?>.</p>
-            <a href="<?= e(url('/locale/' . alt_locale())) ?>" lang="<?= e(alt_locale()) ?>">
-                <?= e(strtoupper(alt_locale())) ?>
-            </a>
+
+            <div class="site-footer__meta">
+                <?php if ($credit['name'] !== ''): ?>
+                    <p class="site-credit">
+                        <?= e(__('page.credit_by')) ?>
+                        <?php if ($credit['url'] !== null): ?>
+                            <a href="<?= e($credit['url']) ?>" rel="noopener nofollow"
+                               target="_blank"><?= e($credit['name']) ?></a>
+                        <?php else: ?>
+                            <strong><?= e($credit['name']) ?></strong>
+                        <?php endif; ?>
+                    </p>
+                <?php endif; ?>
+
+                <a href="<?= e(url('/locale/' . alt_locale())) ?>" lang="<?= e(alt_locale()) ?>">
+                    <?= e(strtoupper(alt_locale())) ?>
+                </a>
+            </div>
         </div>
     </div>
 </footer>

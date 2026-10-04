@@ -564,6 +564,8 @@ return [
         'privacy' => 'Privacy policy',
         'terms'   => 'Terms and conditions',
 
+        'credit_by' => 'Site created by',
+
         'about_intro' => 'WYLDE is a Senegalese streetwear brand. We design and distribute limited-run pieces, produced in Dakar.',
 
         'about_identity_title' => 'Our identity',

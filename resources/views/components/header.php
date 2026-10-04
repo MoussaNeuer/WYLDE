@@ -28,33 +28,27 @@ $user        = auth();
             </button>
 
             <a class="site-logo" href="<?= e(url('/')) ?>" aria-label="<?= e(config('app.name', 'WYLDE')) ?>">
-                <?= e(config('app.name', 'WYLDE')) ?>
+                <img src="<?= e(asset('assets/images/logo/logo.png')) ?>"
+                     alt="<?= e(config('app.name', 'WYLDE')) ?>" width="60" height="24">
             </a>
-
-            <nav class="site-nav" aria-label="<?= e(__('common.main_menu')) ?>">
-                <a href="<?= e(url('/shop')) ?>" class="<?= e(is_active('shop')) ?>"><?= e(__('nav.shop')) ?></a>
-                <a href="<?= e(url('/about')) ?>" class="<?= e(is_active('about')) ?>"><?= e(__('nav.about')) ?></a>
-                <a href="<?= e(url('/contact')) ?>" class="<?= e(is_active('contact')) ?>"><?= e(__('nav.contact')) ?></a>
-            </nav>
 
             <div class="site-header__actions">
 
-                <a class="header-action" href="<?= e(url('/locale/' . alt_locale())) ?>"
-                   hreflang="<?= e(alt_locale()) ?>"
-                   lang="<?= e(alt_locale()) ?>"
-                   data-no-csrf>
-                    <?= e(strtoupper(alt_locale())) ?>
-                </a>
-
-                <a class="header-action" href="<?= e(url($user ? '/account' : '/login')) ?>"
-                   aria-label="<?= e($user ? __('account.title') : __('account.login')) ?>">
+                <a class="header-action" href="<?= e(url($user ? '/account' : '/register')) ?>"
+                   aria-label="<?= e($user ? __('account.title') : __('account.register')) ?>"
+                   title="<?= e($user ? __('account.title') : __('account.register')) ?>">
                     <?php if ($user): ?>
-                        <span class="header-action__initials" aria-hidden="true"><?= e($user->initials()) ?></span>
-                    <?php else: ?>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              stroke-width="1.5" aria-hidden="true">
                             <circle cx="12" cy="8" r="4"/>
                             <path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/>
+                        </svg>
+                    <?php else: ?>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.5" aria-hidden="true">
+                            <circle cx="9.5" cy="8" r="3.8"/>
+                            <path d="M2.5 20c0-3.9 3.1-5.8 7-5.8 1.1 0 2.1.15 3 .43"/>
+                            <path d="M17.5 13.5v6M14.5 16.5h6"/>
                         </svg>
                     <?php endif; ?>
                 </a>
@@ -91,7 +85,7 @@ $user        = auth();
      aria-labelledby="mobileNavLabel">
     <div class="offcanvas-header">
         <h2 class="offcanvas-title h5" id="mobileNavLabel"><?= e(__('nav.menu')) ?></h2>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"
                 aria-label="<?= e(__('nav.close')) ?>"></button>
     </div>
     <div class="offcanvas-body">
@@ -101,9 +95,18 @@ $user        = auth();
             <a href="<?= e(url('/contact')) ?>"><?= e(__('nav.contact')) ?></a>
             <a href="<?= e(url('/account')) ?>"><?= e(__('nav.account')) ?></a>
             <a href="<?= e(url('/cart')) ?>"><?= e(__('nav.cart')) ?></a>
-            <a href="<?= e(url('/locale/' . alt_locale())) ?>" lang="<?= e(alt_locale()) ?>">
-                <?= e(__('nav.language')) ?> : <?= e(strtoupper(alt_locale())) ?>
-            </a>
         </nav>
+
+        <div class="mobile-nav__lang" role="group" aria-label="<?= e(__('nav.language')) ?>">
+            <span class="mobile-nav__lang-label"><?= e(__('nav.language')) ?></span>
+            <div class="mobile-nav__lang-options">
+                <a href="<?= e(url('/locale/fr')) ?>" lang="fr" hreflang="fr" data-no-csrf
+                   class="<?= e($locale === 'fr' ? 'is-current' : '') ?>"
+                   <?= $locale === 'fr' ? 'aria-current="true"' : '' ?>>Français</a>
+                <a href="<?= e(url('/locale/en')) ?>" lang="en" hreflang="en" data-no-csrf
+                   class="<?= e($locale === 'en' ? 'is-current' : '') ?>"
+                   <?= $locale === 'en' ? 'aria-current="true"' : '' ?>>English</a>
+            </div>
+        </div>
     </div>
 </div>

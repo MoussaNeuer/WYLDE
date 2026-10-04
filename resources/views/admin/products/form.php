@@ -66,7 +66,7 @@ $statusMap = [
         </div>
     </header>
 
-    <form class="admin-form" method="post" action="<?= e($action) ?>" novalidate>
+    <form class="admin-form" method="post" action="<?= e($action) ?>" enctype="multipart/form-data" novalidate>
         <?= csrf_field() ?>
 
         <section class="admin-panel">
@@ -121,6 +121,57 @@ $statusMap = [
                     <label for="f-desc"><?= e(__('admin.product.description')) ?></label>
                     <textarea id="f-desc" name="description" rows="6"><?= e((string) $value('description', $isEdit ? $product->description : '')) ?></textarea>
                 </div>
+            </div>
+        </section>
+
+        <section class="admin-panel" data-media-manager
+                 data-mode="<?= $isEdit ? 'async' : 'deferred' ?>"
+                 data-product-id="<?= $isEdit ? e((string) $product->id()) : '' ?>"
+                 data-upload-url="<?= e(url('/api/admin/products/' . ($isEdit ? (int) $product->id() : 0) . '/media')) ?>"
+                 data-reorder-url="<?= e(url('/api/admin/products/' . ($isEdit ? (int) $product->id() : 0) . '/media/reorder')) ?>">
+            <div class="admin-panel__head">
+                <h2 class="admin-panel__title"><?= e(__('admin.product.images')) ?></h2>
+                <?php if ($isEdit): ?>
+                    <div class="admin-panel__actions">
+                        <a class="btn btn-sm btn-outline-light"
+                           href="<?= e(url('/admin/products/' . $product->id() . '/media')) ?>"><?= e(__('admin.media')) ?></a>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <div class="admin-panel__head" style="display:block;padding:1.2rem">
+                <label class="media-drop" data-media-drop for="f-images">
+                    <span class="media-drop__icon" aria-hidden="true">↑</span>
+                    <strong><?= e(__('admin.product.images')) ?></strong>
+                    <span class="media-drop__hint"><?= e(__('admin.media.hint')) ?></span>
+                    <input type="file" id="f-images" name="images[]" accept="image/jpeg,image/png,image/webp" multiple hidden>
+                </label>
+
+                <ul class="media-grid is-sortable" data-media-gallery>
+                    <?php foreach (($images ?? []) as $image): ?>
+                        <li data-media-item data-image-id="<?= e((string) $image->id) ?>">
+                            <img src="<?= e(upload_url((string) $image->path)) ?>" alt="" loading="lazy">
+                            <?php if ((int) $image->is_primary === 1): ?>
+                                <span class="media-grid__primary"><?= e(__('admin.media.primary')) ?></span>
+                            <?php endif; ?>
+                            <div class="media-tile__overlay">
+                                <?php if ((int) $image->is_primary !== 1): ?>
+                                    <button type="button" class="icon-btn" data-media-primary
+                                            title="<?= e(__('admin.media.make_primary')) ?>"
+                                            aria-label="<?= e(__('admin.media.make_primary')) ?>">★</button>
+                                <?php endif; ?>
+                                <button type="button" class="icon-btn icon-btn--danger" data-media-delete
+                                        data-confirm="<?= e(__('common.confirm')) ?>"
+                                        title="<?= e(__('common.delete')) ?>"
+                                        aria-label="<?= e(__('common.delete')) ?>">×</button>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+
+                <p class="media-drop__hint" data-media-empty<?= ($images ?? []) === [] ? '' : ' hidden' ?>>
+                    <?= e(__('admin.media.empty')) ?>
+                </p>
             </div>
         </section>
 

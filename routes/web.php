@@ -85,6 +85,7 @@ $router->get('/media/{path}', 'Api\MediaController@show')
 
 // ── SEO ───────────────────────────────────────────────────────────────
 $router->get('/sitemap.xml', 'Shop\PageController@sitemap');
+$router->get('/site.webmanifest', 'Shop\PageController@manifest');
 
 // ═══════════════════════════════════════════════════════════════════════
 //  COMPTE CLIENT
@@ -162,20 +163,6 @@ $router->group(['admin'], 'admin');
     $router->post('/products/{id}/media/{imageId}/delete', 'Admin\ProductController@deleteMedia')
         ->middleware(['csrf']);
 
-    // API médias (Drag & Drop, réponses JSON).
-    $router->post('/api/admin/products/{id}/media', 'Api\AdminImageApiController@upload')
-        ->middleware(['csrf']);
-    $router->post('/api/admin/products/{id}/media/reorder', 'Api\AdminImageApiController@reorder')
-        ->middleware(['csrf']);
-    $router->post('/api/admin/media/{imageId}/delete', 'Api\AdminImageApiController@destroy')
-        ->middleware(['csrf']);
-
-    // API produits (actions rapides, filtres asynchrones).
-    $router->get('/api/admin/products', 'Api\AdminProductApiController@index')
-        ->middleware(['rate_limit']);
-    $router->post('/api/admin/products/{id}/delete', 'Api\AdminProductApiController@destroy')
-        ->middleware(['csrf']);
-
     // ── Catégories ─────────────────────────────────────────────────────
     $router->get('/categories',            'Admin\CategoryController@index');
     $router->post('/categories',           'Admin\CategoryController@store')
@@ -200,19 +187,12 @@ $router->group(['admin'], 'admin');
     $router->post('/orders/{id}/notes', 'Admin\OrderController@updateNotes')
         ->middleware(['csrf']);
 
-    $router->get('/api/admin/orders', 'Api\AdminOrderApiController@index')
-        ->middleware(['rate_limit']);
-    $router->post('/api/admin/orders/{id}/status', 'Api\AdminOrderApiController@updateStatus')
-        ->middleware(['csrf']);
-
     // ── Clients ────────────────────────────────────────────────────────
     $router->get('/customers',       'Admin\CustomerController@index');
     $router->get('/customers/{id}',  'Admin\CustomerController@show');
 
     // ── Analytics ──────────────────────────────────────────────────────
     $router->get('/analytics', 'Admin\AnalyticsController@index');
-    $router->get('/api/admin/analytics', 'Api\AdminOrderApiController@stats')
-        ->middleware(['rate_limit']);
 
     // ── Paramètres, zones de livraison, profil, sécurité ───────────────
     $router->get('/settings',         'Admin\SettingsController@index');
@@ -238,6 +218,36 @@ $router->group(['admin'], 'admin');
         ->middleware(['csrf']);
 }
 $router->endGroup();
+
+// ═══════════════════════════════════════════════════════════════════════
+//  API BACK-OFFICE (JSON)
+//  Routes à la racine : le préfixe « admin » du groupe précédent ne
+//  s'applique pas. Le middleware « admin » vérifie session et rôle.
+// ═══════════════════════════════════════════════════════════════════════
+
+// Médias produits : dépôt, réordonnancement, image principale, suppression.
+$router->post('/api/admin/products/{id}/media', 'Api\AdminImageApiController@upload')
+    ->middleware(['admin', 'csrf']);
+$router->post('/api/admin/products/{id}/media/reorder', 'Api\AdminImageApiController@reorder')
+    ->middleware(['admin', 'csrf']);
+$router->post('/api/admin/media/{imageId}/delete', 'Api\AdminImageApiController@destroy')
+    ->middleware(['admin', 'csrf']);
+$router->post('/api/admin/media/{imageId}/primary', 'Api\AdminImageApiController@primary')
+    ->middleware(['admin', 'csrf']);
+
+// Produits : filtres asynchrones et actions rapides.
+$router->get('/api/admin/products', 'Api\AdminProductApiController@index')
+    ->middleware(['admin', 'rate_limit']);
+$router->post('/api/admin/products/{id}/delete', 'Api\AdminProductApiController@destroy')
+    ->middleware(['admin', 'csrf']);
+
+// Commandes et statistiques.
+$router->get('/api/admin/orders', 'Api\AdminOrderApiController@index')
+    ->middleware(['admin', 'rate_limit']);
+$router->post('/api/admin/orders/{id}/status', 'Api\AdminOrderApiController@updateStatus')
+    ->middleware(['admin', 'csrf']);
+$router->get('/api/admin/analytics', 'Api\AdminOrderApiController@stats')
+    ->middleware(['admin', 'rate_limit']);
 
 // ═══════════════════════════════════════════════════════════════════════
 //  404 — page personnalisée (§3.1)
