@@ -109,7 +109,7 @@ $labelText = match ($label) {
 
 $status = $stock === null ? null : stock_status($stock);
 ?>
-<article class="product-card reveal" data-product-card data-product-id="<?= e((string) $id) ?>">
+<article class="product-card reveal<?= $hoverImage !== null ? ' product-card--hoverable' : '' ?>" data-product-card data-product-id="<?= e((string) $id) ?>">
 
     <?php /* Le cœur est hors du lien principal : le client doit pouvoir
              enregistrer un produit sans quitter la grille. Son état actif

@@ -1652,13 +1652,13 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-    .product-card__link:hover .product-card__img--hover,
-    .product-card__link:focus-visible .product-card__img--hover {
+    .product-card--hoverable .product-card__link:hover .product-card__img--hover,
+    .product-card--hoverable .product-card__link:focus-visible .product-card__img--hover {
         opacity: 1;
     }
 
-    .product-card__link:hover .product-card__img--primary,
-    .product-card__link:focus-visible .product-card__img--primary {
+    .product-card--hoverable .product-card__link:hover .product-card__img--primary,
+    .product-card--hoverable .product-card__link:focus-visible .product-card__img--primary {
         opacity: 0;
     }
 }
