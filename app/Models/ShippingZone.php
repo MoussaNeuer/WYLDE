@@ -87,7 +87,32 @@ class ShippingZone extends BaseModel
      */
     public static function quote(string $countryCode, string $city = '', int $subtotal = 0): array
     {
-        return static::resolve($countryCode, $city);
+        $quote = static::resolve($countryCode, $city);
+
+        return static::applyFreeShipping($quote, $subtotal);
+    }
+
+    /**
+     * Applique le seuil de livraison offerte au devis.
+     *
+     * Le prix de la zone est conservé tel quel dans `zone` : seul le prix
+     * facturé tombe à zéro. Un panier vide n'est jamais « offert », sinon
+     * la barre du mini-panier afficherait une remise sur un panier vide.
+     *
+     * @param  array{zone: ?self, available: bool, price: int, label: string} $quote
+     * @return array{zone: ?self, available: bool, price: int, label: string}
+     */
+    public static function applyFreeShipping(array $quote, int $subtotal): array
+    {
+        if ($subtotal < 1 || free_shipping_threshold() < 1) {
+            return $quote;
+        }
+
+        if ($subtotal >= free_shipping_threshold()) {
+            $quote['price'] = 0;
+        }
+
+        return $quote;
     }
 
     /** @return array<string, string> Pays desservis (code ISO => nom). */
@@ -118,6 +143,25 @@ class ShippingZone extends BaseModel
         if ((int) $defaultExists > 0) {
             $countries['ZZ'] = __('checkout.rest_of_world');
         }
+
+        return $countries;
+    }
+
+    /**
+     * Pays réellement desservis au checkout, sans la zone de repli « ZZ ».
+     *
+     * Le code pseudo-pays « ZZ » représente la zone par défaut et reste un
+     * choix interne de la boutique : au tunnel de commande on n'accepte
+     * que les pays ayant une zone explicite (pays ou ville), afin qu'un
+     * code forgé ou erroné ne se retrouve jamais facturé au tarif de repli.
+     *
+     * @return array<string, string> Code ISO => nom.
+     */
+    public static function deliverableCountries(): array
+    {
+        $countries = static::availableCountries();
+
+        unset($countries['ZZ']);
 
         return $countries;
     }

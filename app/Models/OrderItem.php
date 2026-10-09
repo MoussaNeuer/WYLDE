@@ -43,9 +43,7 @@ class OrderItem extends BaseModel
 
     public function sizeLabel(): string
     {
-        $size = trim((string) ($this->attributes['size'] ?? ''));
-
-        return $size === '' ? 'UNIQUE' : $size;
+        return size_label((string) ($this->attributes['size'] ?? ''));
     }
 
     public function product(): ?Product

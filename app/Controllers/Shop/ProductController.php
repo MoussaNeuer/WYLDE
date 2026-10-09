@@ -10,6 +10,7 @@ use App\Core\Lang;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
+use App\Core\View;
 use App\Models\Product;
 
 /**
@@ -39,13 +40,30 @@ final class ProductController extends Controller
 
         $variants = $product->variants();
 
-        $defaultVariant = null;
-        foreach ($variants as $variant) {
-            if (($variant->is_default ?? false) === true || $variant->size === 'UNIQUE') {
-                $defaultVariant = $variant;
-                break;
-            }
+// La variante affichée par défaut : is_default l'emporte, car c'est un
+// choix explicite de l'admin. « UNIQUE » n'est qu'un repli pour les
+// produits à une seule variante dont la taille porte ce libellé —
+// sinon une variante UNIQUE parasite masquerait la vraie taille par
+// défaut d'un produit qui, lui, a des tailles.
+$defaultVariant = null;
+
+foreach ($variants as $variant) {
+    if (($variant->is_default ?? false) === true) {
+        $defaultVariant = $variant;
+        break;
+    }
+}
+
+if ($defaultVariant === null) {
+    foreach ($variants as $variant) {
+        if ($variant->size === 'UNIQUE') {
+            $defaultVariant = $variant;
+            break;
         }
+    }
+}
+
+$defaultVariant ??= $variants[0] ?? null;
 
         $relatedIds = [];
         $related    = [];
@@ -74,6 +92,8 @@ final class ProductController extends Controller
                 $relatedIds[] = $p->id();
             }
         }
+
+        View::share('quick_variants', quick_variants_map($related));
 
         return $this->view('shop/product', [
             'title'    => $product->localizedName($locale),

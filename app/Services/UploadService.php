@@ -54,7 +54,11 @@ final class UploadService
             return ['ok' => false, 'error' => 'fichier introuvable', 'path' => ''];
         }
 
-        if ($size <= 0 || $size > self::maxSize()) {
+        if ($size <= 0) {
+            return ['ok' => false, 'error' => 'fichier vide (0 octet)', 'path' => ''];
+        }
+
+        if ($size > self::maxSize()) {
             return [
                 'ok'    => false,
                 'error' => 'trop volumineux (max ' . self::formatSize(self::maxSize()) . ')',
@@ -110,6 +114,23 @@ final class UploadService
 
         @chmod($absolute, 0o644);
 
+        // Ré-encodage GD dans le format d'origine : élimine toute charge
+        // utile qui n'est pas de l'image (PHP caché, scripts…). Un
+        // fichier indécodable ici est rejeté, même s'il semble être une
+        // image aux tests précédents.
+        if (!ImageService::reencode($absolute, $mime)) {
+            @unlink($absolute);
+            ImageService::deleteVariants($relative);
+
+            return ['ok' => false, 'error' => 'image illisible, ré-encodage impossible', 'path' => ''];
+        }
+
+        // Variantes WebP (400/800/1600) : le navigateur ne téléchargera
+        // que la taille utile grâce au srcset des vues.
+        if (Config::get('media.webp', true)) {
+            ImageService::generateVariants($relative);
+        }
+
         return ['ok' => true, 'error' => '', 'path' => $relative];
     }
 
@@ -145,6 +166,9 @@ final class UploadService
 
             return false;
         }
+
+        // Nettoie les variantes WebP associées avant de supprimer l'original.
+        ImageService::deleteVariants($relative);
 
         return @unlink($realFile);
     }

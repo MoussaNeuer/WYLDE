@@ -10,6 +10,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
 use App\Models\User;
+use App\Services\LoginThrottle;
 
 /**
  * Inscription et connexion du client.
@@ -33,19 +34,29 @@ final class AuthController extends Controller
         $remember = $request->bool('remember');
         $errors   = [];
 
-        if ($email === '') {
-            $errors['email'] = __('validation.required', ['field' => __('auth.email')]);
-        }
+        // Anti brute-force : bloque avant même de vérifier le mot de passe.
+        $lockedFor = LoginThrottle::lockedFor('login', $email, $request->ip());
 
-        if ($password === '') {
-            $errors['password'] = __('validation.required', ['field' => __('auth.password')]);
-        }
+        if ($lockedFor > 0) {
+            $errors['email'] = __('auth.locked', [
+                'minutes' => (int) ceil($lockedFor / 60),
+            ]);
+        } else {
+            if ($email === '') {
+                $errors['email'] = __('validation.required', ['field' => __('auth.email')]);
+            }
 
-        if ($errors === []) {
-            $user = Auth::attempt($email, $password);
+            if ($password === '') {
+                $errors['password'] = __('validation.required', ['field' => __('auth.password')]);
+            }
 
-            if ($user === null || !$user->isCustomer()) {
-                $errors['email'] = __('auth.failed');
+            if ($errors === []) {
+                $user = Auth::attempt($email, $password);
+
+                if ($user === null || !$user->isCustomer()) {
+                    LoginThrottle::recordFailure('login', $email, $request->ip());
+                    $errors['email'] = __('auth.failed');
+                }
             }
         }
 
@@ -57,6 +68,9 @@ final class AuthController extends Controller
 
             return redirect('/login');
         }
+
+        // Réinitialise le compteur pour cette adresse (e-mail + IP).
+        LoginThrottle::forget('login', $email, $request->ip());
 
         // Le filtre d'adresse IP est appliqué à la connexion effective.
         $user->touchLogin($request->ipHash());

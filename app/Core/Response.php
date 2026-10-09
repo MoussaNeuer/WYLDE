@@ -83,6 +83,22 @@ final class Response
         return $this;
     }
 
+    /** @return array<string, string> */
+    public function headers(): array
+    {
+        return $this->headers;
+    }
+
+    public function header(string $name, string $default = ''): string
+    {
+        return $this->headers[$name] ?? $default;
+    }
+
+    public function hasHeader(string $name): bool
+    {
+        return isset($this->headers[$name]);
+    }
+
     /** @param array<string, string> $headers */
     public function withHeaders(array $headers): self
     {

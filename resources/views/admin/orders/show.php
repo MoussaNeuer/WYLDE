@@ -135,6 +135,17 @@ $customer = $order->customer();
                     <dd><?= e(__('order.payment_method.' . $order->payment_method)) ?></dd>
                 </div>
                 <div>
+                    <dt><?= e(__('admin.order.channel')) ?></dt>
+                    <dd>
+                        <?php $channel = (string) ($order->getAttribute('channel') ?? 'site'); ?>
+                        <?php if ($channel === 'whatsapp'): ?>
+                            <span class="badge badge--wa"><?= e(__('admin.order.channel_whatsapp')) ?></span>
+                        <?php else: ?>
+                            <?= e(__('admin.order.channel_site')) ?>
+                        <?php endif; ?>
+                    </dd>
+                </div>
+                <div>
                     <dt><?= e(__('order.placed_on')) ?></dt>
                     <dd><?= e(format_date($order->created_at, 'd/m/Y H:i')) ?></dd>
                 </div>

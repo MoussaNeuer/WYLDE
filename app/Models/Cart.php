@@ -118,7 +118,10 @@ class Cart
         );
 
         if ($existing !== null) {
-            return $this->setQuantity((int) $existing['variant_id'], (int) $existing['quantity'] + $quantity);
+            // L'identifiant de variante vient de la requête, pas du
+            // résultat : cette SELECT ne projette que l'id et la
+            // quantité.
+            return $this->setQuantity($variantId, (int) $existing['quantity'] + $quantity);
         }
 
         Database::insert('cart_items', [
@@ -128,6 +131,10 @@ class Cart
             'variant_id' => $variantId,
             'quantity'   => $quantity,
         ]);
+
+        // Le panier en mémoire doit refléter l'ajout tout de suite : le
+        // contrôleur renvoie count()/total() dans la même réponse.
+        $this->load();
 
         return true;
     }
@@ -152,6 +159,8 @@ class Cart
 
         Database::update('cart_items', ['quantity' => $quantity], ['id' => (int) $existing['id']]);
 
+        $this->load();
+
         return true;
     }
 
@@ -161,11 +170,15 @@ class Cart
             'variant_id' => $variantId,
             'session_id' => $this->currentSessionId(),
         ]);
+
+        $this->load();
     }
 
     public function clear(): void
     {
         Database::delete('cart_items', ['session_id' => $this->currentSessionId()]);
+
+        $this->load();
     }
 
     private function currentSessionId(): string

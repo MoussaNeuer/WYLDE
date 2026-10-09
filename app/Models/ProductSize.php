@@ -97,6 +97,64 @@ use App\Core\Database;
         return self::count();
     }
 
+    /**
+     * Tailles réellement proposées par les produits publiés.
+     *
+     * Le filtre « taille » de la boutique ne doit proposer que ce que le
+     * client peut réellement acheter : afficher « XXL » alors qu'aucun
+     * produit publié ne le porte mènerait à une page vide.
+     *
+     * @return array<int, self>
+     */
+    public static function inUse(): array
+    {
+        $rows = Database::select(
+            "SELECT DISTINCT v.size
+             FROM `product_variants` v
+             INNER JOIN `products` p ON p.id = v.product_id
+             WHERE p.status = 'published'
+               AND v.size <> 'UNIQUE'
+             ORDER BY v.size ASC"
+        );
+
+        if ($rows === []) {
+            return [];
+        }
+
+        $byLabel = [];
+
+        foreach (self::ordered() as $size) {
+            $byLabel[$size->label] = $size;
+        }
+
+        $sizes = [];
+
+        foreach ($rows as $row) {
+            $label = (string) $row['size'];
+
+            // Une taille retirée du catalogue mais encore portée par un
+            // produit reste filtrable : c'est le produit qui fait foi.
+            $sizes[] = $byLabel[$label] ?? self::makeStub($label);
+        }
+
+        return $sizes;
+    }
+
+    /**
+     * Modèle non persisté pour une taille qui n'est plus au catalogue.
+     *
+     * Le filtre doit rester utilisable tant que des produits publiés la
+     * portent, même si l'admin l'a retirée entre-temps.
+     */
+    private static function makeStub(string $label): self
+    {
+        return (new self())->hydrate([
+            'id'         => 0,
+            'label'      => $label,
+            'sort_order' => 0,
+        ]);
+    }
+
     /** Prochaine position d'affichage, en fin de liste. */
     public static function nextSortOrder(): int
     {

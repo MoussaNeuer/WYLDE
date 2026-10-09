@@ -9,13 +9,21 @@ use App\Core\Config;
 use App\Core\Logger;
 use App\Core\Request;
 use App\Core\Response;
+use App\Services\ImageService;
 
 /**
  * Sert les médias produits stockés hors document root.
  *
  * Les fichiers vivent dans storage/uploads et ne sont jamais exposés
- * directement : chaque chemin est validé puis-existence vérifié, ce qui
- * empêche la traversée de répertoire via « .. » ou un chemin absolu.
+ * directement : chaque chemin est validé puis l'existence vérifiée, ce
+ * qui empêche la traversée de répertoire via « .. » ou un chemin absolu.
+ *
+ * Deux optimisations sont appliquées :
+ *  - ETag (filesize + mtime) et réponse 304 : le navigateur ne
+ *    retélécharge pas un média déjà en cache (les noms d'upload sont
+ *    immuables, l'immutable en Cache-Control suffit donc) ;
+ *  - sélection de variante via ?w=400 (ou 800, 1600) : la requête
+ *    renvoie la bonne taille de WebP si elle existe.
  */
 final class MediaController extends Controller
 {
@@ -36,6 +44,15 @@ final class MediaController extends Controller
 
         if ($path === null) {
             return $this->notFound();
+        }
+
+        // Sélection de variante : ?w=400 → photo-400.webp si disponible.
+        $width = (int) ($request->query('w', 0));
+        if ($width > 0) {
+            $variant = ImageService::bestFor($path, $width);
+            if ($variant !== $path) {
+                $path = $variant;
+            }
         }
 
         $base = rtrim((string) Config::get('app.paths.uploads', ''), '/\\');
@@ -61,7 +78,35 @@ final class MediaController extends Controller
             return $this->notFound();
         }
 
-        $contents = file_get_contents($realFile);
+        $size    = (int) filesize($realFile);
+        $mtime   = (int) filemtime($realFile);
+        $etag    = '"' . $mtime . '-' . $size . '"';
+        $expires = time() + 31536000;
+
+        // 304 si le client possède déjà cette version exacte.
+        $ifNoneMatch = (string) ($request->header('If-None-Match', '') ?? '');
+        if ($ifNoneMatch !== '') {
+            $candidates = array_map('trim', explode(',', $ifNoneMatch));
+            foreach ($candidates as $candidate) {
+                if ($candidate === '*' || $candidate === $etag) {
+                    return Response::make('', 304)
+                        ->setHeader('ETag', $etag)
+                        ->setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+                }
+            }
+        }
+
+        $ifModifiedSince = (string) ($request->header('If-Modified-Since', '') ?? '');
+        if ($ifModifiedSince !== '') {
+            $since = strtotime($ifModifiedSince);
+            if ($since !== false && $mtime <= $since) {
+                return Response::make('', 304)
+                    ->setHeader('ETag', $etag)
+                    ->setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            }
+        }
+
+        $contents = @file_get_contents($realFile);
 
         if ($contents === false) {
             return $this->notFound();
@@ -71,6 +116,9 @@ final class MediaController extends Controller
             ->setHeader('Content-Type', self::TYPES[$extension])
             // Les médias sont immuables : nom horodaté à l'upload.
             ->setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+            ->setHeader('ETag', $etag)
+            ->setHeader('Last-Modified', gmdate('D, d M Y H:i:s', $mtime) . ' GMT')
+            ->setHeader('Expires', gmdate('D, d M Y H:i:s', $expires) . ' GMT')
             ->setHeader('X-Content-Type-Options', 'nosniff')
             ->setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
     }

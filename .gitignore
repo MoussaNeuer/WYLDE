@@ -13,6 +13,8 @@
 /public/assets/js/*.map
 
 # ── Médias uploadés (versions de prod) ──────────────────────
+/storage/uploads/*
+!/storage/uploads/products/
 /storage/uploads/products/*
 !/storage/uploads/products/.gitkeep
 !/storage/uploads/products/.htaccess

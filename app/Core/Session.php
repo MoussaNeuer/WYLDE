@@ -56,6 +56,14 @@ final class Session
         // session.sid_length et session.sid_bits_per_character sont
         // dépréciés depuis PHP 8.4 : les valeurs par défaut suffisent.
 
+        // Le cache_limiter par défaut (« nocache ») impose un
+        // « Cache-Control: no-store » sur TOUTES les réponses — y compris
+        // les pages publiques, qui ne se restaurent alors jamais depuis le
+        // cache (bouton Retour = rechargement complet). On le désactive et
+        // c'est index.php qui pose des en-têtes de cache adaptés à chaque
+        // page (cf. CachePolicy).
+        session_cache_limiter('');
+
         session_start();
         self::$started = true;
 

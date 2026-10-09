@@ -2,8 +2,9 @@
 /**
  * En-tête de la boutique.
  *
- * Menu mobile en offcanvas (§10), sélecteur de langue FR/EN conservé en
- * session et en cookie, compteur de panier alimenté en Ajax.
+ * Menu mobile en overlay plein écran (§10), recherche accessible
+ * depuis ce menu, sélecteur de langue FR/EN conservé en session et en
+ * cookie, compteur de panier alimenté en Ajax.
  *
  * @var string|null $currentPath
  */
@@ -32,9 +33,29 @@ $user        = auth();
                      alt="<?= e(config('app.name', 'WYLDE')) ?>" width="60" height="24">
             </a>
 
-            <div class="site-header__actions">
+<div class="site-header__actions">
 
-                <a class="header-action" href="<?= e(url($user ? '/account' : '/register')) ?>"
+                  <?php /* La recherche vit dans le menu hamburger :
+                           le bouton de l'en-tête serait de trop sur
+                           mobile et le champ de la boutique ne couvre
+                           pas les autres pages. */ ?>
+                  <a class="header-action header-action--fav"
+                     href="<?= e(url('/favorites')) ?>"
+                     data-favorites-link
+                     data-toast-add="<?= e(__('favorites.added')) ?>"
+                     data-toast-removed="<?= e(__('favorites.removed')) ?>"
+                     data-toast-unavailable="<?= e(__('favorites.unavailable')) ?>"
+                     aria-label="<?= e(__('favorites.open')) ?>"
+                     title="<?= e(__('favorites.title')) ?>">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                           stroke-width="1.5" aria-hidden="true">
+                          <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.4a4.7 4.7 0 0 1 8.5 2.8c0 5.8-8.5 11.3-8.5 11.3z"/>
+                      </svg>
+                      <span class="header-action__count" data-favorites-count
+                            data-count="0" hidden aria-hidden="true"></span>
+                  </a>
+
+                  <a class="header-action" href="<?= e(url($user ? '/account' : '/register')) ?>"
                    aria-label="<?= e($user ? __('account.title') : __('account.register')) ?>"
                    title="<?= e($user ? __('account.title') : __('account.register')) ?>">
                     <?php if ($user): ?>
@@ -71,6 +92,8 @@ $user        = auth();
     </div>
 </header>
 
+<?php /* Menu : overlay plein écran, la recherche en est le premier
+         élément — un geste, un champ, des résultats. */ ?>
 <div class="offcanvas offcanvas-end mobile-nav" tabindex="-1" id="mobileNav"
      aria-labelledby="mobileNavLabel">
     <div class="offcanvas-header">
@@ -79,13 +102,30 @@ $user        = auth();
                 aria-label="<?= e(__('nav.close')) ?>"></button>
     </div>
     <div class="offcanvas-body">
-        <nav class="mobile-nav__links" aria-label="<?= e(__('common.main_menu')) ?>">
-            <a href="<?= e(url('/shop')) ?>"><?= e(__('nav.shop')) ?></a>
-            <a href="<?= e(url('/about')) ?>"><?= e(__('nav.about')) ?></a>
-            <a href="<?= e(url('/contact')) ?>"><?= e(__('nav.contact')) ?></a>
-            <a href="<?= e(url('/account')) ?>"><?= e(__('nav.account')) ?></a>
-            <a href="<?= e(url('/cart')) ?>"><?= e(__('nav.cart')) ?></a>
-        </nav>
+
+        <?php /* Recherche intégrée au menu : ouvre l'overlay dédié,
+                 qui gère la saisie instantanée et les résultats. */ ?>
+        <button class="mobile-nav__search" type="button"
+                data-search-open
+                aria-haspopup="dialog"
+                aria-controls="searchOverlay"
+                aria-label="<?= e(__('search.open')) ?>">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.5" aria-hidden="true">
+                <circle cx="11" cy="11" r="6.5"/>
+                <path d="M16 16l4.5 4.5"/>
+            </svg>
+            <span><?= e(__('search.title')) ?></span>
+        </button>
+
+<nav class="mobile-nav__links" aria-label="<?= e(__('common.main_menu')) ?>">
+              <a href="<?= e(url('/shop')) ?>"><?= e(__('nav.shop')) ?></a>
+              <a href="<?= e(url('/favorites')) ?>"><?= e(__('nav.favorites')) ?></a>
+              <a href="<?= e(url('/about')) ?>"><?= e(__('nav.about')) ?></a>
+              <a href="<?= e(url('/contact')) ?>"><?= e(__('nav.contact')) ?></a>
+              <a href="<?= e(url('/account')) ?>"><?= e(__('nav.account')) ?></a>
+              <a href="<?= e(url('/cart')) ?>"><?= e(__('nav.cart')) ?></a>
+          </nav>
 
         <div class="mobile-nav__lang" role="group" aria-label="<?= e(__('nav.language')) ?>">
             <span class="mobile-nav__lang-label"><?= e(__('nav.language')) ?></span>

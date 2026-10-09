@@ -168,27 +168,211 @@
 /* ── Hero ───────────────────────────────────────────────────────── */
 
 .hero {
-    padding-block: var(--w-space-8);
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: clamp(30rem, 82svh, 46rem);
+    padding-block: calc(var(--w-space-8) + var(--w-header-h))
+                   calc(var(--w-space-8) + var(--w-space-6));
+    padding-inline: var(--w-space-4);
+    overflow: hidden;
+    background: #0d0d0d;
+    color: #fff;
     text-align: center;
+}
+
+/* Image de fond : zoom très lent, façon travelling. */
+.hero__media {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    overflow: hidden;
+}
+
+.hero__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    /* L'image source est en 1080x607 : on upscale pour couvrir grands écrans. */
+    object-fit: cover;
+    object-position: center 42%;
+    transform: scale(1.06);
+    will-change: transform;
+    animation: hero-drift 26s ease-in-out infinite alternate;
+}
+
+@keyframes hero-drift {
+    from { transform: scale(1.06) translate3d(0, 0, 0); }
+    to   { transform: scale(1.18) translate3d(-1.2%, -1.6%, 0); }
+}
+
+/* Voile : garantit le contraste du texte quelle que soit l'image. */
+.hero__veil {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+        linear-gradient(180deg, rgb(0 0 0 / 0.62) 0%, rgb(0 0 0 / 0.34) 38%, rgb(0 0 0 / 0.58) 100%),
+        radial-gradient(120% 80% at 50% 50%, rgb(0 0 0 / 0) 30%, rgb(0 0 0 / 0.5) 100%);
+}
+
+.hero__inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 52rem;
 }
 
 .hero__eyebrow {
     font-size: var(--w-size-sm);
     letter-spacing: 0.3em;
     text-transform: uppercase;
-    color: var(--w-text-muted);
+    color: rgb(255 255 255 / 0.75);
     margin-bottom: var(--w-space-4);
 }
 
-.hero__eyebrow img { display: block; height: 34px; width: auto; margin-inline: auto; }
+.hero__eyebrow img {
+    display: block;
+    height: 34px;
+    width: auto;
+    margin-inline: auto;
+    filter: brightness(0) invert(1);
+    opacity: 0.92;
+}
 
 .hero__title {
     font-size: var(--w-size-hero);
     text-transform: uppercase;
     letter-spacing: -0.03em;
-    margin-bottom: var(--w-space-6);
+    margin-bottom: var(--w-space-5);
     max-width: 18ch;
     margin-inline: auto;
+    color: #fff;
+    text-shadow: 0 2px 30px rgb(0 0 0 / 0.35);
+    animation: hero-rise 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hero__lead {
+    max-width: 46ch;
+    margin: 0 auto var(--w-space-6);
+    font-size: var(--w-size-lg);
+    line-height: 1.65;
+    color: rgb(255 255 255 / 0.86);
+    animation: hero-rise 900ms 120ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--w-space-3);
+    justify-content: center;
+    animation: hero-rise 900ms 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hero__actions .btn {
+    min-width: 12rem;
+    transition: transform var(--w-t-fast), box-shadow var(--w-t-fast),
+                background-color var(--w-t-fast), color var(--w-t-fast);
+}
+
+.hero__actions .btn:hover,
+.hero__actions .btn:focus-visible {
+    transform: translateY(-2px);
+}
+
+.hero__scroll {
+    position: absolute;
+    bottom: var(--w-space-5);
+    left: 50%;
+    translate: -50% 0;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--w-space-1);
+    font-size: var(--w-size-xs);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.7);
+    text-decoration: none;
+}
+
+.hero__scroll svg { animation: hero-bob 2.2s ease-in-out infinite; }
+
+.hero__scroll:hover,
+.hero__scroll:focus-visible { color: #fff; }
+
+@keyframes hero-rise {
+    from { opacity: 0; transform: translate3d(0, 1.25rem, 0); }
+    to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes hero-bob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(4px); }
+}
+
+/* ── Bandeau de réassurance ─────────────────────────────────────── */
+
+.hero-stats {
+    border-bottom: 1px solid var(--w-border);
+    background: var(--w-bg-alt);
+}
+
+.hero-stats__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--w-space-4);
+    padding-block: var(--w-space-5);
+    text-align: center;
+}
+
+.hero-stats__item {
+    margin: 0;
+    font-size: var(--w-size-sm);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--w-text-muted);
+}
+
+.hero-stats__item strong { font-weight: 600; color: var(--w-text); }
+
+@media (min-width: 640px) {
+    .hero-stats__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 639px) {
+    .hero__scroll { display: none; }
+    .hero__actions .btn { min-width: 0; flex: 1 1 auto; }
+}
+
+/* ── Storytelling ───────────────────────────────────────────────── */
+
+.story {
+    padding-block: var(--w-space-8);
+    border-top: 1px solid var(--w-border);
+    background:
+        linear-gradient(180deg, var(--w-bg-alt) 0%, var(--w-bg) 100%);
+}
+
+.story__grid {
+    display: grid;
+    gap: var(--w-space-6);
+}
+
+.story__title {
+    font-size: var(--w-size-xl);
+    letter-spacing: -0.02em;
+    margin-bottom: var(--w-space-4);
+}
+
+.story__lead {
+    max-width: 62ch;
+    color: var(--w-text-muted);
+    line-height: 1.75;
+    margin-bottom: var(--w-space-5);
 }
 
 /* ── Grille produit ─────────────────────────────────────────────── */
@@ -209,10 +393,7 @@
 
 .product-card__link {
     display: block;
-    transition: opacity var(--w-t-fast);
 }
-
-.product-card__link:hover { opacity: 0.82; }
 
 .product-card__media {
     position: relative;
@@ -226,10 +407,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform var(--w-t-slow);
 }
-
-.product-card__link:hover .product-card__media img { transform: scale(1.03); }
 
 .product-card__placeholder {
     display: block;
@@ -260,22 +438,36 @@
     border: 1px solid var(--w-text);
 }
 
+/* Nom en capitales, prix ancré en bas : la carte se lit d'un coup
+   d'œil, photo → nom → prix, quel que soit le nombre de lignes. */
+.product-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--w-space-1);
+    min-height: 4.5rem;
+}
+
 .product-card__name {
     font-size: var(--w-size-sm);
-    font-weight: 600;
-    line-height: 1.35;
-    margin-bottom: var(--w-space-1);
+    font-weight: 800;
+    line-height: 1.3;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    margin-bottom: 0;
 }
 
 .product-card__price {
     display: flex;
     align-items: baseline;
     gap: var(--w-space-2);
+    margin-top: auto;
+    padding-top: var(--w-space-1);
     font-size: var(--w-size-sm);
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
 }
 
-.product-card__price-old { color: var(--w-text-muted); }
+.product-card__price-old { color: var(--w-text-muted); font-weight: 500; }
 
 .product-card__stock {
     margin-top: var(--w-space-1);
@@ -285,6 +477,15 @@
 
 .product-card__stock--out { color: var(--w-danger); }
 .product-card__stock--low { color: var(--w-warning); }
+
+/* Taille unique affichée sur la carte : le client sait ce qu'il ajoute
+   avant même d'ouvrir la fiche. */
+.product-card__size {
+    margin-top: var(--w-space-1);
+    font-size: var(--w-size-xs);
+    font-weight: 600;
+    color: var(--w-text-muted);
+}
 
 .link-more {
     font-size: var(--w-size-sm);
@@ -528,3 +729,1303 @@
     border-bottom-color: var(--w-text);
     opacity: 0.75;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   FICHES PRODUIT, CHECKOUT, MENU MOBILE
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Galerie ───────────────────────────────────────────────────── */
+
+.product-gallery__main {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--w-radius-lg);
+    background: var(--w-surface);
+}
+
+.product-gallery__main img {
+    display: block;
+    width: 100%;
+    height: auto;
+    transition: opacity var(--w-t-base);
+}
+
+.product-gallery__zoom {
+    position: absolute;
+    right: var(--w-space-3);
+    bottom: var(--w-space-3);
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-pill);
+    background: rgb(255 255 255 / 0.9);
+    color: var(--w-text);
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity var(--w-t-base), transform var(--w-t-base),
+                background-color var(--w-t-fast);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+    .product-gallery__zoom { background: rgb(255 255 255 / 0.72); backdrop-filter: blur(8px); }
+}
+
+.product-gallery__main:hover .product-gallery__zoom,
+.product-gallery__zoom:focus-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Sans survol (tactile), le bouton reste visible en permanence. */
+@media (hover: none) {
+    .product-gallery__zoom { opacity: 1; transform: translateY(0); }
+}
+
+.product-gallery__zoom:hover { background: var(--w-text); color: var(--w-bg); }
+
+.product-gallery__nav {
+    position: absolute;
+    top: 50%;
+    inset-inline: var(--w-space-2);
+    display: flex;
+    justify-content: space-between;
+    translate: 0 -50%;
+    pointer-events: none;
+}
+
+.product-gallery__arrow {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-pill);
+    background: rgb(255 255 255 / 0.9);
+    color: var(--w-text);
+    cursor: pointer;
+    pointer-events: auto;
+    opacity: 0;
+    transition: opacity var(--w-t-base), background-color var(--w-t-fast),
+                color var(--w-t-fast);
+}
+
+.product-gallery__main:hover ~ .product-gallery__nav .product-gallery__arrow,
+.product-gallery__arrow:focus-visible {
+    opacity: 1;
+}
+
+.product-gallery__arrow:hover { background: var(--w-text); color: var(--w-bg); }
+
+.product-gallery__thumbs {
+    display: flex;
+    gap: var(--w-space-2);
+    margin-top: var(--w-space-3);
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scroll-snap-type: x proximity;
+}
+
+.product-gallery__thumb {
+    flex: 0 0 auto;
+    width: 4.5rem;
+    padding: 0;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-sm);
+    background: none;
+    overflow: hidden;
+    cursor: pointer;
+    scroll-snap-align: start;
+    opacity: 0.6;
+    transition: opacity var(--w-t-base), border-color var(--w-t-base),
+                transform var(--w-t-base);
+}
+
+.product-gallery__thumb img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.product-gallery__thumb:hover { opacity: 1; transform: translateY(-2px); }
+
+.product-gallery__thumb.is-active {
+    opacity: 1;
+    border-color: var(--w-text);
+}
+
+/* Compteur de vues (pill en surimpression). */
+.product-gallery__count {
+    position: absolute;
+    bottom: var(--w-space-3);
+    inset-inline-start: var(--w-space-3);
+    z-index: 2;
+    padding: 0.25rem 0.625rem;
+    border: 1px solid rgb(255 255 255 / 0.35);
+    border-radius: var(--w-radius-pill);
+    background: rgb(0 0 0 / 0.45);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+}
+
+@supports (backdrop-filter: blur(1px)) {
+    .product-gallery__count { background: rgb(0 0 0 / 0.32); backdrop-filter: blur(6px); }
+}
+
+/* Défilement automatique façon « stories ». */
+.product-gallery__progress {
+    position: absolute;
+    top: 0;
+    inset-inline: 0;
+    z-index: 2;
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.625rem 0.625rem 0;
+    pointer-events: none;
+}
+
+.product-gallery__progress-bar {
+    flex: 1 1 0;
+    height: 0.1875rem;
+    overflow: hidden;
+    border-radius: var(--w-radius-pill);
+    background: rgb(255 255 255 / 0.4);
+}
+
+.product-gallery__progress-fill {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: #fff;
+}
+
+.product-gallery__progress-bar.is-current .product-gallery__progress-fill {
+    animation: gallery-progress var(--gallery-autoplay-ms, 4000ms) linear forwards;
+}
+
+.product-gallery__progress-bar.is-seen .product-gallery__progress-fill {
+    width: 100%;
+}
+
+@keyframes gallery-progress {
+    from { width: 0; }
+    to { width: 100%; }
+}
+
+/* Apparition douce à chaque changement de vue. */
+@keyframes gallery-photo-in {
+    from { opacity: 0; transform: scale(1.025); }
+    to { opacity: 1; transform: none; }
+}
+
+.product-gallery__main img.gallery-photo-in {
+    animation: gallery-photo-in 280ms ease both;
+}
+
+/* Tactile : flèches toujours visibles. */
+@media (hover: none) {
+    .product-gallery__arrow { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .product-gallery__progress-fill { animation: none; }
+}
+
+/* Mobile : grandes zones tactiles basses, accessibles au pouce. */
+@media (max-width: 576px) {
+    .product-gallery__nav {
+        top: auto;
+        bottom: var(--w-space-2);
+        inset-inline: var(--w-space-2);
+        translate: none;
+    }
+
+    .product-gallery__arrow {
+        width: 3rem;
+        height: 3rem;
+        opacity: 1;
+    }
+
+    .product-gallery__zoom {
+        top: var(--w-space-3);
+        right: var(--w-space-3);
+        bottom: auto;
+    }
+
+    .product-gallery__count {
+        bottom: calc(var(--w-space-2) + 3rem + 0.5rem);
+    }
+}
+
+/* ── Visionneuse ───────────────────────────────────────────────── */
+
+.lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: grid;
+    place-items: center;
+    gap: var(--w-space-4);
+    padding: var(--w-space-5);
+    background: rgb(8 8 8 / 0.94);
+    animation: lightbox-in 220ms var(--w-ease) both;
+}
+
+.lightbox[hidden] { display: none; }
+
+.lightbox__image {
+    max-width: min(100%, 60rem);
+    max-height: 82vh;
+    width: auto;
+    height: auto;
+    border-radius: var(--w-radius);
+    animation: lightbox-zoom 320ms var(--w-spring) both;
+}
+
+.lightbox__close {
+    position: absolute;
+    top: var(--w-space-4);
+    right: var(--w-space-4);
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border: 1px solid rgb(255 255 255 / 0.25);
+    border-radius: var(--w-radius-pill);
+    background: rgb(255 255 255 / 0.08);
+    color: #fff;
+    font-size: 1.75rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color var(--w-t-fast), border-color var(--w-t-fast);
+}
+
+.lightbox__close:hover {
+    background: rgb(255 255 255 / 0.18);
+    border-color: rgb(255 255 255 / 0.5);
+}
+
+.lightbox__hint {
+    margin: 0;
+    font-size: var(--w-size-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.6);
+}
+
+@keyframes lightbox-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes lightbox-zoom {
+    from { opacity: 0; transform: scale(0.94); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Réassurance sur la fiche ──────────────────────────────────── */
+
+.product-trust {
+    margin-top: var(--w-space-6);
+    padding-top: var(--w-space-5);
+    border-top: 1px solid var(--w-border);
+}
+
+.product-trust__title {
+    font-size: var(--w-size-sm);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--w-text-muted);
+    margin-bottom: var(--w-space-4);
+}
+
+.product-trust__list {
+    display: grid;
+    gap: var(--w-space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.product-trust__item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--w-space-3);
+    font-size: var(--w-size-sm);
+    line-height: 1.5;
+    color: var(--w-text-muted);
+}
+
+.product-trust__item svg {
+    flex: 0 0 auto;
+    margin-top: 0.1rem;
+    color: var(--w-text);
+}
+
+.product-trust__item strong {
+    display: block;
+    color: var(--w-text);
+    font-weight: 600;
+}
+
+/* ── Barre d'achat fixe ────────────────────────────────────────── */
+
+.buybar {
+    position: fixed;
+    bottom: 0;
+    inset-inline: 0;
+    z-index: 1020;
+    background: rgb(255 255 255 / 0.94);
+    border-top: 1px solid var(--w-border);
+    box-shadow: 0 -8px 24px rgb(10 10 10 / 0.08);
+    animation: buybar-in 280ms var(--w-spring) both;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+    .buybar { background: rgb(255 255 255 / 0.82); backdrop-filter: blur(14px); }
+}
+
+.buybar[hidden] { display: none; }
+
+.buybar__inner {
+    display: flex;
+    align-items: center;
+    gap: var(--w-space-3);
+    padding-block: var(--w-space-3);
+}
+
+.buybar__meta { min-width: 0; margin-right: auto; }
+
+.buybar__name {
+    margin: 0;
+    font-size: var(--w-size-xs);
+    color: var(--w-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.buybar__price {
+    margin: 0;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.buybar__size { flex: 0 0 7rem; }
+
+.buybar__cta { flex: 0 0 auto; white-space: nowrap; }
+
+@keyframes buybar-in {
+    from { opacity: 0; transform: translateY(100%); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* La barre et le pied de page ne doivent pas se chevaucher. */
+@media (max-width: 639px) {
+    body:has(.buybar:not([hidden])) .site-footer { padding-bottom: 5.5rem; }
+}
+
+/* ── Checkout : canal WhatsApp ─────────────────────────────────── */
+
+.payment-option {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--w-space-3);
+    padding: var(--w-space-4);
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius);
+    background: var(--w-bg);
+    cursor: pointer;
+    transition: border-color var(--w-t-base), background-color var(--w-t-base),
+                box-shadow var(--w-t-base), transform var(--w-t-base);
+}
+
+.payment-option:hover {
+    border-color: var(--w-text);
+    transform: translateY(-1px);
+    box-shadow: var(--w-shadow-sm);
+}
+
+.payment-option:has(:checked) {
+    border-color: var(--w-text);
+    background: var(--w-surface);
+    box-shadow: var(--w-ring);
+}
+
+.payment-option__wa {
+    flex: 0 0 auto;
+    margin-top: 0.15rem;
+    color: #25D366;
+}
+
+/* Fil d'étapes : Contact → Livraison → Paiement. */
+.steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--w-space-2);
+    margin: 0 0 var(--w-space-5);
+    padding: 0;
+    list-style: none;
+}
+
+.steps__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px 8px 8px;
+    border-radius: var(--w-radius-pill);
+    background: var(--w-bg-alt);
+    color: var(--w-text-muted);
+    font-size: var(--w-size-sm);
+    font-weight: 600;
+}
+
+.steps__num {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--w-bg);
+    color: var(--w-text-muted);
+    font-size: var(--w-size-xs);
+    font-weight: 700;
+}
+
+.steps__item.is-current {
+    background: var(--w-accent);
+    color: var(--w-bg);
+}
+
+.steps__item.is-current .steps__num {
+    background: var(--w-bg);
+    color: var(--w-text);
+}
+
+.steps__item.is-done {
+    color: var(--w-text);
+    cursor: pointer;
+}
+
+.checkout-nav {
+    display: flex;
+    gap: 12px;
+    margin-top: var(--w-space-4);
+}
+
+.checkout-nav .btn {
+    flex: 1 1 auto;
+    min-height: var(--w-tap);
+}
+
+/* Récapitulatif collant : il suit le défilement pendant que le client
+   descend dans les champs. */
+.checkout-summary {
+    position: sticky;
+    top: calc(var(--w-header-h) + var(--w-space-4));
+}
+
+.checkout-summary__hint {
+    margin-top: var(--w-space-3);
+    padding: var(--w-space-3);
+    border: 1px dashed var(--w-border);
+    border-radius: var(--w-radius);
+    font-size: var(--w-size-sm);
+    color: var(--w-text-muted);
+}
+
+.checkout-summary__foot {
+    margin-top: var(--w-space-3);
+    font-size: var(--w-size-xs);
+    color: var(--w-text-muted);
+    text-align: center;
+}
+
+/* Le bouton de validation change d'accent selon le canal choisi. */
+.checkout-form[data-channel="whatsapp"] [data-checkout-submit] {
+    background: #25D366;
+    border-color: #25D366;
+    color: #fff;
+}
+
+.checkout-form[data-channel="whatsapp"] [data-checkout-submit]:hover {
+    background: #1EBE5A;
+    border-color: #1EBE5A;
+}
+
+.checkout-form.is-sending [data-checkout-submit] {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+@media (max-width: 991px) {
+    /* Sur téléphone, le récapitulatif ne peut plus flotter : il devient
+       un bandeau repliable que le client ouvre pour vérifier le total. */
+    .checkout-summary {
+        position: fixed;
+        inset: auto 0 0 0;
+        z-index: 1020;
+        border-top: 1px solid var(--w-border);
+        background: var(--w-bg);
+        box-shadow: 0 -8px 24px rgb(10 10 10 / 0.12);
+        padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    }
+
+    /* Le détail ne s'ouvre que sur demande : sinon il prend la moitié
+       de l'écran sur un iPhone. */
+    .checkout-summary .summary {
+        display: none;
+    }
+
+    .checkout-summary.is-open .summary {
+        display: block;
+        max-height: 50vh;
+        overflow-y: auto;
+        margin-bottom: 10px;
+    }
+
+    .checkout-summary__toggle {
+        display: flex;
+    }
+
+    .checkout-summary__foot {
+        display: none;
+    }
+
+    /* Le bouton de validation reste visible sans être masqué par la
+       barre du navigateur. */
+    body.page-checkout {
+        padding-bottom: 96px;
+    }
+}
+
+.checkout-summary__toggle {
+    display: none;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 40px;
+    border: 0;
+    background: transparent;
+    color: var(--w-text);
+    font-size: var(--w-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+}
+
+/* ── Menu mobile : overlay plein écran ─────────────────────────── */
+
+.site-header__burger {
+    position: relative;
+    z-index: 1100;
+    width: 2.75rem;
+    height: 2.75rem;
+    display: grid;
+    place-content: center;
+    gap: 5px;
+    padding: 0;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-pill);
+    background: var(--w-bg);
+    cursor: pointer;
+    transition: background-color var(--w-t-base), border-color var(--w-t-base);
+}
+
+.site-header__burger:hover { border-color: var(--w-text); }
+
+.burger-line {
+    display: block;
+    width: 1.125rem;
+    height: 1.5px;
+    background: var(--w-text);
+    border-radius: 2px;
+    transition: transform var(--w-t-base), opacity var(--w-t-fast);
+}
+
+/* Ouvert : les trois barres deviennent une croix. */
+.is-nav-open .burger-line:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.is-nav-open .burger-line:nth-child(2) { opacity: 0; transform: scaleX(0.2); }
+.is-nav-open .burger-line:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+.is-nav-open .site-header__burger { background: var(--w-text); border-color: var(--w-text); }
+.is-nav-open .site-header__burger .burger-line { background: var(--w-bg); }
+
+.mobile-nav {
+    --w-border: rgb(255 255 255 / 0.12);
+    width: min(22rem, 100%);
+    background: #0d0d0d;
+    color: #fff;
+    border-left: none;
+}
+
+/* Sur téléphone, le menu prend tout l'écran : chaque geste compte, et
+   un panneau partiel laisse voir la page derrière sans rien apporter. */
+@media (max-width: 767.98px) {
+    .mobile-nav {
+        width: 100%;
+    }
+}
+
+/* Recherche : premier geste du menu, au même niveau visuel que les
+   liens mais traité comme un champ (bordure, icône, texte d'appel). */
+.mobile-nav__search {
+    display: flex;
+    align-items: center;
+    gap: var(--w-space-3);
+    width: 100%;
+    min-height: var(--w-tap);
+    margin-bottom: var(--w-space-5);
+    padding: var(--w-space-3) var(--w-space-4);
+    font-size: var(--w-size-base);
+    font-weight: 600;
+    color: rgb(255 255 255 / 0.85);
+    text-align: left;
+    background: rgb(255 255 255 / 0.06);
+    border: 1px solid rgb(255 255 255 / 0.16);
+    border-radius: var(--w-radius-pill);
+    cursor: pointer;
+    transition: background-color var(--w-t-base), border-color var(--w-t-base);
+}
+
+.mobile-nav__search:hover,
+.mobile-nav__search:focus-visible {
+    background: rgb(255 255 255 / 0.12);
+    border-color: rgb(255 255 255 / 0.4);
+}
+
+.mobile-nav__search svg {
+    flex: 0 0 auto;
+    color: rgb(255 255 255 / 0.6);
+}
+
+.mobile-nav .offcanvas-header {
+    border-bottom: 1px solid rgb(255 255 255 / 0.12);
+}
+
+.mobile-nav .offcanvas-title {
+    font-size: var(--w-size-xs);
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.55);
+}
+
+.mobile-nav .btn-close {
+    filter: invert(1);
+    opacity: 0.75;
+}
+
+.mobile-nav__links a {
+    position: relative;
+    display: block;
+    padding: var(--w-space-4) 0;
+    border-bottom: 1px solid rgb(255 255 255 / 0.1);
+    font-size: clamp(1.375rem, 5vw, 1.75rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: #fff;
+    text-decoration: none;
+    transition: padding-left var(--w-t-base), color var(--w-t-base);
+}
+
+.mobile-nav__links a::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 0;
+    height: 1px;
+    background: currentColor;
+    transition: width var(--w-t-base);
+}
+
+.mobile-nav__links a:hover,
+.mobile-nav__links a:focus-visible {
+    padding-left: var(--w-space-3);
+}
+
+.mobile-nav__links a:hover::before,
+.mobile-nav__links a:focus-visible::before { width: var(--w-space-2); }
+
+.mobile-nav__lang {
+    margin-top: var(--w-space-5);
+    padding-top: var(--w-space-5);
+    border-top: 1px solid rgb(255 255 255 / 0.12);
+}
+
+.mobile-nav__lang-label {
+    display: block;
+    margin-bottom: var(--w-space-3);
+    font-size: var(--w-size-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.5);
+}
+
+.mobile-nav__lang-options {
+    display: inline-flex;
+    border: 1px solid rgb(255 255 255 / 0.2);
+    border-radius: var(--w-radius-pill);
+    overflow: hidden;
+}
+
+.mobile-nav__lang-options a {
+    padding: var(--w-space-2) var(--w-space-4);
+    font-size: var(--w-size-sm);
+    font-weight: 600;
+    color: rgb(255 255 255 / 0.7);
+    text-decoration: none;
+    transition: background-color var(--w-t-fast), color var(--w-t-fast);
+}
+
+.mobile-nav__lang-options a + a { border-left: 1px solid rgb(255 255 255 / 0.2); }
+
+.mobile-nav__lang-options a.is-current {
+    background: #fff;
+    color: #0d0d0d;
+}
+
+/* Les liens s'enchaînent à l'ouverture du panneau. */
+.mobile-nav.show .mobile-nav__links a {
+    animation: nav-link-in 420ms var(--w-spring) both;
+}
+
+.mobile-nav.show .mobile-nav__links a:nth-child(1) { animation-delay: 60ms; }
+.mobile-nav.show .mobile-nav__links a:nth-child(2) { animation-delay: 110ms; }
+.mobile-nav.show .mobile-nav__links a:nth-child(3) { animation-delay: 160ms; }
+.mobile-nav.show .mobile-nav__links a:nth-child(4) { animation-delay: 210ms; }
+.mobile-nav.show .mobile-nav__links a:nth-child(5) { animation-delay: 260ms; }
+
+@keyframes nav-link-in {
+    from { opacity: 0; transform: translate3d(1.5rem, 0, 0); }
+    to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+/* ── Cartes produit : survol plus franc ───────────────────────── */
+
+.product-card__media {
+    border-radius: var(--w-radius);
+    transition: box-shadow var(--w-t-base);
+}
+
+/* Survol : un halo, jamais de zoom. La photo doit rester stable pour
+   qu'on clique dessus sans viser une cible mouvante. */
+.product-card__link:hover .product-card__media {
+    box-shadow: var(--w-shadow);
+}
+
+.product-card__name {
+    transition: color var(--w-t-fast);
+}
+
+/* ── Révélation au défilement ─────────────────────────────────── */
+
+/* Masquage conditionné à la présence de JS : sans script, le contenu
+   reste visible et la page reste utilisable. */
+.js .reveal {
+    opacity: 0;
+    transform: translate3d(0, 2rem, 0);
+    transition: opacity 900ms var(--w-ease), transform 900ms var(--w-spring);
+}
+
+.js .reveal.is-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+}
+
+/* Lustre lent sur les grilles : chaque carte se pose à son tour,
+   sans précipitation — le mouvement accompagne le défilement. */
+.js .stagger > * {
+    animation: w-fade-up 700ms var(--w-spring) both;
+}
+
+.js .stagger > *:nth-child(1) { animation-delay: 80ms; }
+.js .stagger > *:nth-child(2) { animation-delay: 150ms; }
+.js .stagger > *:nth-child(3) { animation-delay: 220ms; }
+.js .stagger > *:nth-child(4) { animation-delay: 290ms; }
+.js .stagger > *:nth-child(5) { animation-delay: 360ms; }
+.js .stagger > *:nth-child(6) { animation-delay: 430ms; }
+.js .stagger > *:nth-child(7) { animation-delay: 500ms; }
+.js .stagger > *:nth-child(8) { animation-delay: 570ms; }
+.js .stagger > *:nth-child(n + 9) { animation-delay: 640ms; }
+
+/* ── Mouvement réduit ─────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .hero__image { animation: none; transform: scale(1.06); }
+
+    .js .reveal { opacity: 1; transform: none; }
+}
+/* ═══════════════════════════════════════════════════════════════
+   Lot C — survol deuxième photo, favoris, overlay, filtres
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Deuxième photo au survol ──────────────────────────────────
+
+   Les deux images sont superposées dans la même boîte (ratio 4/5
+   imposé), donc rien ne saute au survol. La bascule n'est active que
+   sur un appareil qui survole réellement : sur mobile, le balayage
+   déclencherait l'apparition de la photo au moment du tap et volerait
+   le geste à l'ajout au panier.                                  */
+
+.product-card__img--hover {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 560ms var(--w-ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .product-card__link:hover .product-card__img--hover,
+    .product-card__link:focus-visible .product-card__img--hover {
+        opacity: 1;
+    }
+
+    .product-card__link:hover .product-card__img--primary,
+    .product-card__link:focus-visible .product-card__img--primary {
+        opacity: 0;
+    }
+}
+
+/* ── Cœur favori ──────────────────────────────────────────────── */
+
+.product-card { position: relative; }
+
+.product-card__fav {
+    position: absolute;
+    top: var(--w-space-2);
+    right: var(--w-space-2);
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    color: var(--w-text);
+    background: rgb(255 255 255 / 0.9);
+    border: 0;
+    border-radius: var(--w-radius-pill);
+    cursor: pointer;
+    transition: background-color var(--w-t-fast), transform var(--w-t-fast);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .product-card__fav:hover { background: #FFFFFF; transform: scale(1.08); }
+}
+
+.product-card__fav:focus-visible {
+    outline: 2px solid var(--w-text);
+    outline-offset: 2px;
+}
+
+.product-card__fav svg { transition: fill var(--w-t-fast); }
+
+.product-card__fav.is-active { color: var(--w-danger); }
+.product-card__fav.is-active svg { fill: currentColor; }
+
+@keyframes fav-pop {
+    0%   { transform: scale(1); }
+    45%  { transform: scale(1.25); }
+    100% { transform: scale(1); }
+}
+
+.product-card__fav.is-active svg { animation: fav-pop 320ms var(--w-spring); }
+
+/* Compteur de l'en-tête : même emplacement que le panier. */
+.header-action__count {
+    position: absolute;
+    top: 4px;
+    right: 2px;
+    min-width: 1rem;
+    padding: 0 3px;
+    font-size: 0.625rem;
+    line-height: 1rem;
+    text-align: center;
+    color: #FFFFFF;
+    background: var(--w-text);
+    border-radius: var(--w-radius-pill);
+}
+
+/* ── Overlay de recherche ────────────────────────────────────── */
+
+.search-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+}
+
+.search-overlay[hidden] { display: none; }
+
+.search-overlay__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(10 10 10 / 0.45);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+    .search-overlay__backdrop { backdrop-filter: blur(3px); }
+}
+
+.search-overlay__panel {
+    position: relative;
+    width: calc(100% - 2rem);
+    max-width: 40rem;
+    margin: 5vh auto 0;
+    padding: var(--w-space-4);
+    background: #0D0D0D;
+    color: #FFFFFF;
+    border-radius: var(--w-radius-lg);
+    box-shadow: var(--w-shadow-lg);
+}
+
+.search-overlay.is-open .search-overlay__panel {
+    animation: search-panel-in 260ms var(--w-spring);
+}
+
+@keyframes search-panel-in {
+    from { opacity: 0; transform: translate3d(0, -0.75rem, 0); }
+    to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+.has-overlay-open,
+.has-overlay-open body { overflow: hidden; }
+
+.search-overlay__field {
+    display: flex;
+    align-items: center;
+    gap: var(--w-space-2);
+    padding-bottom: var(--w-space-3);
+    border-bottom: 1px solid rgb(255 255 255 / 0.14);
+}
+
+.search-overlay__icon { flex: none; color: rgb(255 255 255 / 0.6); }
+
+.search-overlay__input {
+    flex: 1;
+    min-width: 0;
+    padding: var(--w-space-2) 0;
+    font-size: var(--w-size-lg);
+    color: #FFFFFF;
+    caret-color: #FFFFFF;
+    background: transparent;
+    border: 0;
+}
+
+.search-overlay__input::placeholder { color: rgb(255 255 255 / 0.45); }
+
+.search-overlay__input:focus { outline: none; }
+
+.search-overlay__close {
+    flex: none;
+    width: var(--w-tap);
+    height: var(--w-tap);
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #FFFFFF;
+    background: transparent;
+    border: 0;
+    border-radius: var(--w-radius-pill);
+    cursor: pointer;
+    transition: background-color var(--w-t-fast);
+}
+
+.search-overlay__close:hover {
+    background: rgb(255 255 255 / 0.1);
+}
+
+.search-overlay__status {
+    margin: var(--w-space-3) 0 0;
+    font-size: var(--w-size-sm);
+    color: rgb(255 255 255 / 0.55);
+}
+
+.search-overlay__status[hidden] { display: none; }
+
+.search-overlay__results {
+    margin: var(--w-space-3) 0 0;
+    padding: 0;
+    list-style: none;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.search-overlay__results[hidden] { display: none; }
+
+.search-result {
+    display: flex;
+    align-items: center;
+    gap: var(--w-space-3);
+    padding: var(--w-space-2);
+    border-radius: var(--w-radius);
+    color: #FFFFFF;
+    transition: background-color var(--w-t-fast);
+}
+
+.search-result:hover,
+.search-result:focus-visible,
+.search-result.is-active { background: rgb(255 255 255 / 0.08); }
+
+.search-result__thumb {
+    flex: none;
+    width: 3rem;
+    height: 3.75rem;
+    overflow: hidden;
+    background: rgb(255 255 255 / 0.08);
+    border-radius: var(--w-radius-sm);
+}
+
+.search-result__thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.search-result__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.search-result__name {
+    font-size: var(--w-size-base);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.search-result__price { font-size: var(--w-size-sm); color: rgb(255 255 255 / 0.85); }
+
+.search-result__old { font-size: var(--w-size-xs); color: rgb(255 255 255 / 0.45); }
+
+.search-overlay__all {
+    display: block;
+    margin-top: var(--w-space-3);
+    padding-top: var(--w-space-3);
+    font-size: var(--w-size-sm);
+    color: rgb(255 255 255 / 0.85);
+    border-top: 1px solid rgb(255 255 255 / 0.14);
+}
+
+.search-overlay__all:hover { color: #FFFFFF; }
+
+.search-overlay__all[hidden] { display: none; }
+
+/* Sur téléphone, la recherche veut toute la hauteur : une petite
+   carte flottante perd le clavier et coupe la liste des résultats.
+   L'overlay devient une feuille pleine écran qui glisse du haut,
+   dans l'esprit du menu sombre qui l'a ouverte. */
+@media (max-width: 767.98px) {
+    .search-overlay__backdrop {
+        background: rgb(10 10 10 / 0.6);
+        backdrop-filter: blur(2px);
+    }
+
+    .search-overlay__panel {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        max-width: none;
+        min-height: 100dvh;
+        margin: 0;
+        padding: calc(var(--w-space-4) + env(safe-area-inset-top))
+                 var(--w-space-4)
+                 calc(var(--w-space-5) + env(safe-area-inset-bottom));
+        border-radius: 0;
+        box-shadow: none;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .search-overlay.is-open .search-overlay__panel {
+        animation: search-panel-in-mob 280ms var(--w-spring);
+    }
+
+    @keyframes search-panel-in-mob {
+        from { opacity: 0; transform: translate3d(0, -100%, 0); }
+        to   { opacity: 1; transform: translate3d(0, 0, 0); }
+    }
+
+    .search-overlay__input { font-size: 1.25rem; }
+
+    .search-overlay__results {
+        flex: 1;
+        max-height: none;
+    }
+
+    .search-overlay__all {
+        margin-top: var(--w-space-4);
+        padding-top: var(--w-space-4);
+    }
+}
+
+/* ── Filtres de la boutique ──────────────────────────────────── */
+
+.shop-filters { margin-bottom: var(--w-space-5); }
+
+.shop-filters__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--w-space-2);
+    width: 100%;
+    min-height: var(--w-tap);
+    padding: var(--w-space-2) var(--w-space-3);
+    font-size: var(--w-size-sm);
+    background: var(--w-surface);
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-sm);
+    cursor: pointer;
+    list-style: none;
+}
+
+.shop-filters__toggle::-webkit-details-marker { display: none; }
+
+.shop-filters__badge {
+    min-width: 1.5rem;
+    padding: 0 6px;
+    font-size: var(--w-size-xs);
+    line-height: 1.5rem;
+    text-align: center;
+    color: #FFFFFF;
+    background: var(--w-text);
+    border-radius: var(--w-radius-pill);
+}
+
+.shop-filters__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--w-space-4);
+    padding: var(--w-space-4) 0;
+}
+
+.shop-filters__group { margin: 0; padding: 0; border: 0; }
+
+.shop-filters__pills { display: flex; flex-wrap: wrap; gap: var(--w-space-2); }
+
+.shop-filters__pill input { position: absolute; opacity: 0; pointer-events: none; }
+
+.shop-filters__pill span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.75rem;
+    min-height: 2.5rem;
+    padding: 0 var(--w-space-3);
+    font-size: var(--w-size-sm);
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-pill);
+    cursor: pointer;
+    transition: background-color var(--w-t-fast), color var(--w-t-fast);
+}
+
+.shop-filters__pill input:checked + span {
+    color: #FFFFFF;
+    background: var(--w-text);
+    border-color: var(--w-text);
+}
+
+.shop-filters__pill input:focus-visible + span { outline: 2px solid var(--w-text); outline-offset: 2px; }
+
+.shop-filters__prices { display: flex; align-items: center; gap: var(--w-space-2); }
+
+.shop-filters__prices .form-control { min-width: 0; }
+
+.shop-filters__sep { color: var(--w-text-muted); }
+
+.shop-filters__check {
+    display: flex;
+    align-items: center;
+    gap: var(--w-space-2);
+    min-height: var(--w-tap);
+    font-size: var(--w-size-sm);
+    cursor: pointer;
+}
+
+.shop-filters__actions { display: flex; flex-wrap: wrap; gap: var(--w-space-2); }
+
+/* Bureau : le tiroir reste déplié, le bouton n'a plus de raison d'être.
+   Le !important neutralise le comportement natif de <details> fermé. */
+@media (min-width: 992px) {
+    .shop-filters__toggle { display: none; }
+
+    .shop-filters > .shop-filters__body {
+        display: flex !important;
+        padding-top: 0;
+    }
+}
+
+/* ── Puces de filtres actifs ─────────────────────────────────── */
+
+.shop-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--w-space-2);
+    margin-bottom: var(--w-space-5);
+}
+
+.shop-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--w-space-2);
+    min-height: 2.25rem;
+    padding: 0 var(--w-space-3);
+    font-size: var(--w-size-sm);
+    background: var(--w-surface);
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-pill);
+}
+
+.shop-chip:hover { background: #FFFFFF; }
+
+.shop-chip__x { font-size: 1.1rem; line-height: 1; }
+
+/* ── Chargement progressif ───────────────────────────────────── */
+
+.shop-more {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--w-space-3);
+    margin-top: var(--w-space-7);
+}
+
+.shop-more__counter { font-size: var(--w-size-sm); color: var(--w-text-muted); }
+.shop-more__counter[hidden] { display: none; }
+.shop-more__error { font-size: var(--w-size-sm); color: var(--w-danger); }
+.shop-more__error[hidden] { display: none; }
+.shop-more__button[hidden] { display: none; }
+
+.shop-more__button.is-loading { opacity: 0.6; pointer-events: none; }
+
+.shop-pagination[hidden] { display: none; }
+
+/* ── Page des favoris ────────────────────────────────────────── */
+
+.favorites__counter { font-size: var(--w-size-sm); color: var(--w-text-muted); }
+.favorites__counter[hidden] { display: none; }
+.favorites__loading { font-size: var(--w-size-sm); color: var(--w-text-muted); }
+.favorites__loading[hidden] { display: none; }
+.favorites__error { font-size: var(--w-size-sm); color: var(--w-danger); }
+.favorites__error[hidden] { display: none; }
+
+.favorites .empty-state[hidden] { display: none; }
+
+.favorites .product-grid:empty { display: none; }

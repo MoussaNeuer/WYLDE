@@ -167,7 +167,9 @@ class Product extends BaseModel
     /**
      * Recherche + filtres + tri pour la page boutique.
      *
-     * @param  array<string, mixed> $params  q, sort, page, per_page, label, category_id, min_price, max_price
+     * @param  array<string, mixed> $params  q, sort, page, per_page, label,
+     *                                       category_id, min_price, max_price,
+     *                                       size, in_stock
      * @return array{products: array<int, static>, total: int}
      */
     public static function search(?string $query = null, array $params = []): array
@@ -208,6 +210,32 @@ class Product extends BaseModel
             $bindings['max_price'] = (int) $params['max_price'];
         }
 
+        // Un produit « taille » est un produit qui possède une variante
+        // de cette taille et pas seulement une variante UNIQUE.
+        $size = trim((string) ($params['size'] ?? ''));
+        $sized = $size !== '' && $size !== 'UNIQUE';
+
+        if ($sized) {
+            $clauses[] = 'EXISTS (SELECT 1 FROM `product_variants` v
+                          WHERE v.product_id = p.id AND v.size = :size)';
+            $bindings['size'] = $size;
+        }
+
+        // « En stock seulement » : au moins une variante vendable. Si une
+        // taille est choisie, le stock demandé porte sur cette taille-là :
+        // « taille L + en stock » doit sortir les produits dont le L est
+        // vendable, pas ceux qui ont une M encore disponible.
+        if (!empty($params['in_stock'])) {
+            if ($sized) {
+                $clauses[] = 'EXISTS (SELECT 1 FROM `product_variants` v2
+                              WHERE v2.product_id = p.id AND v2.size = :size_stock AND v2.stock > 0)';
+                $bindings['size_stock'] = $size;
+            } else {
+                $clauses[] = 'EXISTS (SELECT 1 FROM `product_variants` v2
+                              WHERE v2.product_id = p.id AND v2.stock > 0)';
+            }
+        }
+
         $where = 'WHERE ' . implode(' AND ', $clauses);
 
         $order = match ($sort) {
@@ -223,14 +251,8 @@ class Product extends BaseModel
             $bindings
         );
 
-        $rows = Database::select(
-            'SELECT p.*, (
-                 SELECT path FROM product_images
-                 WHERE product_id = p.id
-                 ORDER BY is_primary DESC, sort_order ASC LIMIT 1
-             ) AS image_path
-             FROM products p
-             ' . $where . '
+        $rows = self::listingQuery(
+            $where . '
              ORDER BY ' . $order . '
              LIMIT ' . $perPage . ' OFFSET ' . (($page - 1) * $perPage),
             $bindings
@@ -240,6 +262,93 @@ class Product extends BaseModel
             'products' => array_map(static fn (array $row): static => (new static())->hydrate($row), $rows),
             'total'    => $total,
         ];
+    }
+
+    /**
+     * Bornes de prix des produits publiés, pour les curseurs de filtre.
+     *
+     * Interroge le prix effectif (remise comprise) et non `price` : sinon
+     * le curseur proposerait des bornes qu'aucun produit n'a jamais.
+     *
+     * @return array{min: int, max: int}
+     */
+    public static function priceBounds(): array
+    {
+        $row = Database::selectOne(
+            "SELECT COALESCE(MIN(COALESCE(NULLIF(p.sale_price, 0), p.price)), 0) AS min_price,
+                    COALESCE(MAX(COALESCE(NULLIF(p.sale_price, 0), p.price)), 0) AS max_price
+             FROM `products` p
+             WHERE p.status = :status",
+            ['status' => self::STATUS_PUBLISHED]
+        );
+
+        return [
+            'min' => (int) ($row['min_price'] ?? 0),
+            'max' => (int) ($row['max_price'] ?? 0),
+        ];
+    }
+
+    /**
+     * Produits publiés par identifiants, dans l'ordre demandé.
+     *
+     * Utilisé par la page « Mes favoris » : l'ordre vient du navigateur,
+     * qui classe les ajouts du plus récent au plus ancien.
+     *
+     * @param  array<int, int|string> $ids
+     * @return array<int, static>
+     */
+    public static function findManyByIds(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter(
+            array_map(static fn ($id): int => (int) $id, $ids),
+            static fn (int $id): bool => $id > 0
+        )));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        // La clause filtre sur le statut : un produit archivé ne doit pas
+        // réapparaître dans les favoris du visiteur.
+        $rows = self::listingQuery(
+            'WHERE p.status = ? AND p.id IN (' . $placeholders . ')',
+            array_merge([self::STATUS_PUBLISHED], $ids)
+        );
+
+        $byId = [];
+
+        foreach ($rows as $row) {
+            $byId[(int) $row['id']] = (new static())->hydrate($row);
+        }
+
+        // La requête ne garantit pas l'ordre du navigateur : on le rétablit.
+        return array_values(array_filter(
+            array_map(static fn (int $id) => $byId[$id] ?? null, $ids)
+        ));
+    }
+
+    /**
+     * Colonnes communes aux listes de produits.
+     *
+     * Le stock total et la première image sont résolus ici plutôt que par
+     * une requête par produit : une grille de 12 cartes ne coûterait
+     * sinon 24 allers-retours.
+     */
+    private static function listingQuery(string $tail, array $bindings = []): array
+    {
+        return Database::select(
+            'SELECT p.*,
+                    COALESCE((SELECT SUM(v.stock) FROM `product_variants` v
+                              WHERE v.product_id = p.id), 0) AS total_stock,
+                    (SELECT path FROM product_images
+                     WHERE product_id = p.id
+                     ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS image_path
+             FROM products p
+             ' . $tail,
+            $bindings
+        );
     }
 
     /**
@@ -393,6 +502,13 @@ class Product extends BaseModel
     /** Stock cumulé sur toutes les variantes. */
     public function totalStock(): int
     {
+        // Les listes de produits rapportent déjà le cumul dans la requête :
+        // sans cette court-circuit, une grille de 12 cartes coûterait
+        // 12 requêtes supplémentaires.
+        if (isset($this->attributes['total_stock'])) {
+            return (int) $this->attributes['total_stock'];
+        }
+
         $row = Database::selectOne(
             'SELECT COALESCE(SUM(stock), 0) AS total FROM `product_variants` WHERE `product_id` = :id',
             ['id' => $this->id()]

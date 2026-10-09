@@ -48,15 +48,17 @@ return [
     ],
 
     // CSP déployée progressivement (cf. §13.5).
+    // Bootstrap est auto-hébergé dans public/assets/vendor : aucun
+    // domaine tiers n'est autorisé pour les styles, scripts ou polices.
     'csp' => [
         'enabled'    => (bool) env('CSP_ENABLED', false),
         'report_only'=> (bool) env('CSP_REPORT_ONLY', true),
         'directives' => [
             "default-src 'self'",
-            "img-src 'self' data: blob: https:",
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-            "script-src 'self' https://cdn.jsdelivr.net",
-            "font-src 'self' data: https://cdn.jsdelivr.net",
+            "img-src 'self' data: blob:",
+            "style-src 'self' 'unsafe-inline'",
+            "script-src 'self'",
+            "font-src 'self' data:",
             "connect-src 'self'",
             "frame-ancestors 'self'",
             "object-src 'none'",
@@ -81,9 +83,8 @@ return [
                                    'js', 'html', 'htm', 'shtml', 'cgi', 'pl', 'py', 'sh', 'bat',
                                    'exe', 'com', 'dll', 'so', 'htaccess'],
         'max_width'            => 2000,
-        'thumb_width'          => 600,
-        'thumb_quality'        => 82,
-        'webp_quality'         => 82,
+        // thumb_width / thumb_quality / webp_quality ont été remplacés
+        // par la section media de config/app.php (cf. ImageService).
         'max_images_per_product' => 12,
     ],
 ];

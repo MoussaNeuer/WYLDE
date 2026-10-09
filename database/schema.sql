@@ -277,6 +277,11 @@ CREATE TABLE IF NOT EXISTS `orders` (
                       NOT NULL DEFAULT 'pending',
     `payment_method`  ENUM('cod','wave')  NOT NULL DEFAULT 'cod',
     `payment_status`  ENUM('unpaid','paid','refunded') NOT NULL DEFAULT 'unpaid',
+    -- Canal de confirmation choisi par le client. 'whatsapp' veut dire que la
+    -- commande a bien été enregistrée ici, puis transmise à l'admin via un
+    -- message WhatsApp pré-rempli. payment_method reste 'cod' : c'est le
+    -- règlement qui compte, pas le canal de confirmation.
+    `channel`         ENUM('site','whatsapp') NOT NULL DEFAULT 'site',
     `subtotal`        DECIMAL(12,0) NOT NULL DEFAULT 0,
     `shipping_cost`   DECIMAL(12,0) NOT NULL DEFAULT 0,
     `discount`        DECIMAL(12,0) NOT NULL DEFAULT 0,
@@ -374,6 +379,26 @@ CREATE TABLE IF NOT EXISTS `order_status_history` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ───────────────────────────────────────────────────────────────────────────
+--  contact_messages — messages reçus depuis la page contact.
+--  Aucun envoi d'email automatique en V1 (§22) : le message est conservé et
+--  consulté dans le back-office. L'IP est stockée sous forme de HMAC.
+-- ───────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `contact_messages` (
+    `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `name`       VARCHAR(120) NOT NULL,
+    `email`      VARCHAR(190) NOT NULL,
+    `subject`    VARCHAR(120) NULL,
+    `message`    TEXT         NOT NULL,
+    `status`     ENUM('new','read') NOT NULL DEFAULT 'new',
+    `ip_hash`    CHAR(64)     NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_contact_status_created` (`status`, `created_at`),
+    KEY `idx_contact_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ───────────────────────────────────────────────────────────────────────────
 --  settings — paramètres de la boutique (clé / valeur)
 --  Contient notamment le lien de paiement Wave global.
 -- ───────────────────────────────────────────────────────────────────────────
@@ -415,14 +440,21 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- Lien de paiement Wave Business (lien global, cf. décision Phase 1).
 -- credit_name / credit_url : mention « site créé par » dans le pied de page
 -- et sur les pages de connexion, modifiable depuis l'admin.
+-- whatsapp_number : numéro qui reçoit les commandes passées depuis la boutique.
+-- Seul le chiffre international est conservé (chiffres et « + »), les espaces,
+-- points et tirets sont retirés au moment de l'envoi.
 INSERT INTO `settings` (`key`, `value`) VALUES
     ('wave_payment_link', ''),
     ('shop_email',        'contact@wylde.sn'),
     ('shop_phone',        ''),
     ('shop_address',      ''),
+    ('shop_tagline',      'Be Your Own'),
     ('free_shipping_threshold', '0'),
     ('credit_name',       'Jef Tech'),
-    ('credit_url',        '')
+    ('credit_url',        ''),
+    ('whatsapp_number',   '+221 77 785 12 23'),
+    ('whatsapp_enabled',  '1'),
+    ('whatsapp_message',  '')
 ON DUPLICATE KEY UPDATE `value` = `value`;
 
 -- Zone de livraison initiale : Sénégal / Dakar = 2 000 FCFA.

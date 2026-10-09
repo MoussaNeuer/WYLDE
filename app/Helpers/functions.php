@@ -157,6 +157,90 @@ if (!function_exists('money_int')) {
     }
 }
 
+if (!function_exists('cart_update_plan')) {
+    /**
+     * Traduit le champ quantity[variant_id] du panier en plan de mise à jour.
+     *
+     * Le formulaire du panier envoie une quantité par ligne, et non un
+     * couple (variant_id, quantité) : sans cette traduction, chaque ligne
+     * était lue comme absente et la mise à jour ne touchait à rien.
+     *
+     * Règles :
+     *  - une quantité nulle ou négative retire la ligne concerned ;
+     *  - une quantité supérieure au stock est plafonnée, et signalée dans
+     *    « capped » pour que l'appelant puisse prévenir le visiteur ;
+     *  - seule variante présente dans $limits est retenue, pour qu'un champ
+     *    bricolé ne crée ni ne modifie une ligne qui n'est pas au panier.
+     *
+     * @param array<array-key, mixed> $submitted  champ quantity[id] reçu
+     * @param array<int, int>          $limits     variant_id => stock effectif
+     *
+     * @return array{remove: array<int, int>, set: array<int, int>, capped: array<int, int>}
+     */
+    function cart_update_plan(array $submitted, array $limits): array
+    {
+        $plan = ['remove' => [], 'set' => [], 'capped' => []];
+
+        foreach ($submitted as $variantId => $rawQuantity) {
+            $variantId = (int) $variantId;
+
+            if (!array_key_exists($variantId, $limits)) {
+                continue;
+            }
+
+            $quantity = is_numeric($rawQuantity) ? (int) $rawQuantity : 0;
+
+            if ($quantity < 1) {
+                $plan['remove'][] = $variantId;
+
+                continue;
+            }
+
+            // Le stock nul reste commandable d'une unité : la même règle que
+            // Cart::setQuantity(), qui plafonne à max(1, stock).
+            $limit = max(1, (int) $limits[$variantId]);
+
+            if ($quantity > $limit) {
+                $plan['capped'][$variantId] = $limit;
+            }
+
+            $plan['set'][$variantId] = min($quantity, $limit);
+        }
+
+        return $plan;
+    }
+}
+
+if (!function_exists('app_base_url')) {
+    /**
+     * URL de base absolue de l'application, sans barre oblique finale.
+     *
+     * Valeur de app.url (APP_URL) par défaut. Quand app.url_from_request
+     * est actif, l'hôte et le préfixe public sont déduits de la requête
+     * courante, ce qui rend le même code déployable à la racine d'un
+     * DocumentRoot ou dans un sous-dossier. L'en-tête Host n'est retenu que
+     * s'il figure dans app.trusted_hosts, sauf si cette liste est vide.
+     */
+    function app_base_url(): string
+    {
+        $base = (string) Config::get('app.url', '');
+
+        if (Config::get('app.url_from_request', false)) {
+            $request = Request::capture();
+            $host    = $request->host();
+            $trusted = (array) Config::get('app.trusted_hosts', []);
+
+            // Hôte vide (CLI, tests) : impossible de deriv quoi que ce soit,
+            // on garde la valeur de app.url.
+            if ($host !== '' && ($trusted === [] || in_array($host, $trusted, true))) {
+                $base = $request->baseUrl();
+            }
+        }
+
+        return rtrim($base, '/');
+    }
+}
+
 if (!function_exists('url')) {
     /**
      * Construit une URL absolue à partir de l'URL de base configurée,
@@ -164,7 +248,7 @@ if (!function_exists('url')) {
      */
     function url(string $path = ''): string
     {
-        $base = rtrim((string) Config::get('app.url', ''), '/');
+        $base = app_base_url();
         $path = '/' . ltrim($path, '/');
 
         if ($path === '/' && $base !== '') {
@@ -208,7 +292,19 @@ if (!function_exists('asset')) {
     {
         $path = ltrim($path, '/');
 
+        // En production, on sert la version minifiée si elle existe.
+        // Elle est produite par tools/minify.php avant le déploiement.
         if (!Config::isDebug()) {
+            if (preg_match('#\.(css|js)$#', $path) === 1) {
+                $minPath = preg_replace('#\.(css|js)$#', '.min.$1', $path) ?? $path;
+                $minFile = rtrim((string) Config::get('app.paths.public', ''), '/\\')
+                    . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $minPath);
+
+                if (is_file($minFile)) {
+                    return url($minPath);
+                }
+            }
+
             return url($path);
         }
 
@@ -566,6 +662,106 @@ if (!function_exists('old_input')) {
     }
 }
 
+if (!function_exists('free_shipping_threshold')) {
+    /**
+     * Montant à partir duquel la livraison est offerte, en XOF.
+     *
+     * Le réglage vit dans l'admin (free_shipping_threshold). À 0, ou
+     * négatif, la livraison offerte est désactivée : c'est le cas par
+     * défaut, et ShippingZone continue alors de facturer la zone.
+     */
+    function free_shipping_threshold(): int
+    {
+        return max(0, (int) setting('free_shipping_threshold', 0));
+    }
+}
+
+if (!function_exists('free_shipping_progress')) {
+    /**
+     * État de la livraison offerte pour un sous-total donné.
+     *
+     * Alimente la barre de progression du panier et du mini-panier.
+     * Quand le seuil est désactivé, enabled vaut false et le reste n'a pas
+     * de sens : les appelants doivent alors masquer la barre.
+     *
+     * @return array{enabled: bool, threshold: int, threshold_text: string, remaining: int, remaining_text: string, reached: bool, percent: int}
+     */
+    function free_shipping_progress(int $subtotal, ?int $threshold = null): array
+    {
+        $threshold ??= free_shipping_threshold();
+
+        if ($threshold < 1) {
+            return [
+                'enabled'        => false,
+                'threshold'      => 0,
+                'threshold_text' => '',
+                'remaining'      => 0,
+                'remaining_text' => '',
+                'reached'        => false,
+                'percent'        => 0,
+            ];
+        }
+
+        $remaining = max(0, $threshold - $subtotal);
+
+        return [
+            'enabled'        => true,
+            'threshold'      => $threshold,
+            'threshold_text' => money($threshold),
+            'remaining'      => $remaining,
+            'remaining_text' => money($remaining),
+            'reached'        => $remaining === 0,
+            // Plafonné à 100 : au-delà du seuil la barre est pleine.
+            'percent'        => (int) min(100, (int) round($subtotal / $threshold * 100)),
+        ];
+    }
+}
+
+if (!function_exists('low_stock_threshold')) {
+    /**
+     * Seuil « stock bas » : en dessous, l'admin alerte et la fiche produit
+     * affiche un message de rareté. Repli sur le seuil configuré.
+     */
+    function low_stock_threshold(): int
+    {
+        return max(1, (int) config('stock.low_threshold', 5));
+    }
+}
+
+if (!function_exists('scarcity_message')) {
+    /**
+     * Message de rareté pour un stock faible : « Plus que 2 en M ».
+     *
+     * @param  string|null $size  taille de la variante, ou null si unique
+     * @return array{level: string, text: string}|null
+     */
+    function scarcity_message(int $stock, ?string $size = null): ?array
+    {
+        if ($stock < 1) {
+            return null;
+        }
+
+        $threshold = low_stock_threshold();
+
+        if ($stock > $threshold) {
+            return null;
+        }
+
+        // « UNIQUE » et les tailles vides ne devraient jamais apparaître dans
+        // une phrase client : on retombe sur le message sans le nom de taille.
+        $withSize = ($size !== null && $size !== '' && $size !== 'UNIQUE')
+            ? (string) $size
+            : null;
+
+        return [
+            'level' => $stock <= 2 ? 'critical' : 'low',
+            'text'  => $withSize !== null
+                ? trans_choice('product.scarcity_in_size', $stock, ['size' => $withSize])
+                : trans_choice('product.scarcity_count', $stock),
+        ];
+    }
+}
+
 if (!function_exists('setting')) {
     /**
      * Lit un paramètre de boutique depuis la table settings,
@@ -604,6 +800,38 @@ if (!function_exists('site_credit')) {
     }
 }
 
+if (!function_exists('quick_variants_map')) {
+    /**
+     * Variantes d'une liste de produits, indexées par produit.
+     *
+     * Les vignettes ont besoin du stock de chaque variante pour proposer
+     * l'ajout rapide. Interroger la base depuis la vignette coûterait une
+     * requête par produit : sur une page de 12 produits, le navigateur
+     * attendrait 12 allers-retours avant d'afficher la page. Les
+     * contrôleurs appellent donc ce helper une fois et partagent le
+     * résultat avec les vignettes via View::share('quick_variants', …).
+     *
+     * @param  array<int, \App\Models\Product|array<string, mixed>> $products
+     * @return array<int, array<int, array{id:int, size:string, stock:int, available:bool}>>
+     */
+    function quick_variants_map(array $products): array
+    {
+        $ids = [];
+
+        foreach ($products as $product) {
+            $id = $product instanceof \App\Models\Product
+                ? $product->id()
+                : (int) ($product['id'] ?? 0);
+
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids === [] ? [] : \App\Models\Variant::forProducts($ids);
+    }
+}
+
 if (!function_exists('stock_status')) {
     /**
      * Statut de stock d'un produit.
@@ -626,29 +854,170 @@ if (!function_exists('stock_status')) {
     }
 }
 
+if (!function_exists('size_label')) {
+    /**
+     * Libellé d'une taille pour l'affichage client.
+     *
+     * « UNIQUE » n'est qu'un marqueur interne : le client doit lire
+     * « Taille unique », pas un code technique.
+     */
+    function size_label(?string $size): string
+    {
+        if ($size === null || $size === '' || $size === 'UNIQUE') {
+            return __('product.size_unique');
+        }
+
+        return $size;
+    }
+}
+
 if (!function_exists('product_payload')) {
     /**
      * Représentation JSON d'un produit, partagée par l'API recherche et
-     * l'API produits du back-office. Les montants sont des entiers : la
-     * mise en forme reste à la charge du client (§4.2).
+     * l'API produits du back-office.
+     *
+     * Les montants sont des entiers, mais la texte est fourni également :
+     * les former en JavaScript reviendrait à réimplémenter le séparateur
+     * de milliers et le suffixe de devise dans deux langues.
      */
     function product_payload(\App\Models\Product $product): array
     {
         $stock = $product->totalStock();
         $image = $product->primaryImage();
+        $price = (int) $product->effectivePrice();
+        $list  = (int) $product->price;
 
         return [
             'id'          => (int) $product->id(),
             'name'        => $product->localizedName(),
             'slug'        => (string) $product->slug,
             'sku'         => (string) $product->sku,
-            'price'       => (int) $product->effectivePrice(),
+            'price'       => $price,
+            'price_text'  => money($price),
+            'list_price'  => $product->hasDiscount() ? $list : null,
+            'list_price_text' => $product->hasDiscount() ? money($list) : null,
             'has_discount' => $product->hasDiscount(),
             'image'       => $image === null ? null : upload_url($image),
             'stock'       => $stock,
             'stock_level' => stock_status($stock)['level'],
+            'stock_text'  => stock_status($stock)['label'],
             'url'         => url('/product/' . $product->slug),
         ];
+    }
+}
+
+if (!function_exists('card_images_map')) {
+    /**
+     * Deuxième image de chaque produit, indexée par identifiant.
+     *
+     * La carte affiche cette image au survol (bureau uniquement). La
+     * lecture se fait en une requête pour toute la page : l'appeler pour
+     * chaque carte coûterait un aller-retour par produit, juste pour
+     * savoir s'il existe une photo secondaire.
+     *
+     * @param  array<int, \App\Models\Product|array<string, mixed>> $products
+     * @return array<int, string|null>
+     */
+    function card_images_map(array $products): array
+    {
+        $ids = [];
+
+        foreach ($products as $product) {
+            $id = $product instanceof \App\Models\Product
+                ? $product->id()
+                : (int) ($product['id'] ?? 0);
+
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        $rows = \App\Core\Database::select(
+            "SELECT product_id, path
+             FROM `product_images`
+             WHERE product_id IN ($placeholders)
+             ORDER BY is_primary DESC, sort_order ASC, id ASC",
+            $ids
+        );
+
+        // On garde la première image de chaque produit, en ignorant celle
+        // déjà affichée : celle-ci est généralement la principale.
+        $seenPrimary = [];
+        $map = [];
+
+        foreach ($rows as $row) {
+            $productId = (int) $row['product_id'];
+
+            if (!isset($seenPrimary[$productId])) {
+                $seenPrimary[$productId] = true;
+
+                continue;
+            }
+
+            if (!isset($map[$productId])) {
+                $map[$productId] = (string) $row['path'];
+            }
+        }
+
+        // La photo principale connue de la carte permet d'ignorer aussi
+        // celle-ci : sans cela, on afficherait deux fois la même image.
+        foreach ($products as $product) {
+            $id = $product instanceof \App\Models\Product
+                ? $product->id()
+                : (int) ($product['id'] ?? 0);
+
+            if ($id < 1 || !isset($map[$id])) {
+                continue;
+            }
+
+            $primary = $product instanceof \App\Models\Product
+                ? $product->primaryImage()
+                : ($product['image_path'] ?? null);
+
+            if (is_string($primary) && $primary === $map[$id]) {
+                unset($map[$id]);
+            }
+        }
+
+        return $map;
+    }
+}
+
+if (!function_exists('render_product_cards')) {
+    /**
+     * Rend une liste de cartes produit dans une chaîne.
+     *
+     * Utilisé par « Charger plus » et par la page des favoris : le HTML
+     * vient du même composant que la grille rendue par le serveur, donc
+     * le JavaScript ne duplique pas la mise en page de la carte.
+     *
+     * @param array<int, \App\Models\Product> $products
+     */
+    function render_product_cards(array $products): string
+    {
+        if ($products === []) {
+            return '';
+        }
+
+        // Les variantes et les images secondaires des nouveaux produits
+        // sont préchargées avant le rendu, sinon chaque carte déclencherait
+        // une requête pour son ajout rapide et son survol.
+        View::share('quick_variants', quick_variants_map($products));
+        View::share('card_images', card_images_map($products));
+
+        ob_start();
+
+        foreach ($products as $product) {
+            view_partial('components/product-card', ['product' => $product]);
+        }
+
+        return (string) ob_get_clean();
     }
 }
 

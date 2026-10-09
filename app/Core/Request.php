@@ -130,6 +130,40 @@ final class Request
         return $scheme . '://' . $host . ($_SERVER['REQUEST_URI'] ?? '/');
     }
 
+    /**
+     * Hôte de la requête, filtré.
+     *
+     * L'en-tête Host est fourni par le client : on ne conserve que les
+     * caractères d'un nom d'hôte ou d'une adresse (avec port et crochets
+     * IPv6) pour ne jamais réinjecter de contenu arbitraire dans les liens
+     * générés par url().
+     */
+    public function host(): string
+    {
+        $host = strtolower(trim((string) ($_SERVER['HTTP_HOST'] ?? '')));
+
+        return preg_replace('/[^a-z0-9.\-:\[\]]/', '', $host) ?? '';
+    }
+
+    /**
+     * URL de base de l'application : schéma + hôte + préfixe public.
+     *
+     * dirname(SCRIPT_NAME) vaut /WYLDE/public quand le projet est servi
+     * dans un sous-dossier, et / (donc chaîne vide) quand public/ est la
+     * racine du DocumentRoot. C'est ce qui permet à url() de produire des
+     * liens absolus corrects sur les deux montages.
+     */
+    public function baseUrl(): string
+    {
+        $base = str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '')));
+
+        if ($base === '' || $base === '.' || $base === '/') {
+            $base = '';
+        }
+
+        return ($this->isSecure() ? 'https' : 'http') . '://' . $this->host() . $base;
+    }
+
     // ── Entrées ─────────────────────────────────────────────────────────
 
     public function query(string $key, mixed $default = null): mixed

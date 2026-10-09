@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Validators;
 
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductSize;
 
@@ -40,6 +41,33 @@ class ProductValidator extends Validator
         $this->integer('category_id', __('admin.product.category'));
         $this->positive('price', __('admin.product.price'));
         $this->positive('sale_price', __('admin.product.sale_price'));
+
+        // category_id est NOT NULL + FK : une valeur absente du catalogue
+        // ferait échouer l'INSERT strict (et un slug étranger n'aurait pas
+        // de page). On vérifie l'existence réelle, pas seulement le format.
+        $categoryId = $this->value('category_id');
+
+        if (
+            $categoryId !== null && (string) $categoryId !== ''
+            && filter_var($categoryId, FILTER_VALIDATE_INT) !== false
+            && Category::find((int) $categoryId) === null
+        ) {
+            $this->addError('category_id', __('validation.exists', ['field' => __('admin.product.category')]));
+        }
+
+        // Un prix promo supérieur ou égal au prix normal est une erreur de
+        // saisie : la remise affichée serait négative ou nulle.
+        $price = $this->value('price');
+        $sale  = $this->value('sale_price');
+
+        if (
+            $price !== null && (string) $price !== ''
+            && $sale !== null && (string) $sale !== ''
+            && is_numeric($price) && is_numeric($sale)
+            && (float) $sale >= (float) $price
+        ) {
+            $this->addError('sale_price', __('validation.promo_less'));
+        }
 
         $this->inList('status', __('common.status'), [
             Product::STATUS_DRAFT,

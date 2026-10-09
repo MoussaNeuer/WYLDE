@@ -42,6 +42,7 @@ $icon = static function (string $name, string $class = 'admin-nav__icon'): strin
         'plus'       => '<path d="M12 5v14M5 12h14"/>',
         'keyboard'   => '<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M9.5 10h.01M13 10h.01M16.5 10h.01M8 14h8"/>',
         'sizes'      => '<path d="M3 6h18M3 12h18M3 18h18"/><path d="M7 3v6M17 9v6M11 15v6"/>',
+        'mail'       => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
     ];
 
     return '<svg class="' . e($class) . '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
@@ -55,6 +56,9 @@ $alerts = \App\Services\NotificationService::alerts();
 $badge  = array_sum(array_column($alerts, 'count'));
 $urgent = array_slice($alerts, 0, 3);
 
+// Messages de contact : badge de non-lus, indépendant des alertes métier.
+$messages = \App\Models\ContactMessage::countUnread();
+
 $nav = [
     ['url' => '/admin', 'label' => __('admin.dashboard'), 'icon' => 'dashboard', 'match' => $route === 'admin', 'key' => '1'],
     ['group' => __('admin.products')],
@@ -64,6 +68,8 @@ $nav = [
     ['group' => __('admin.orders')],
     ['url' => '/admin/orders', 'label' => __('admin.orders'), 'icon' => 'orders', 'match' => (bool) is_active('admin/orders')],
     ['url' => '/admin/customers', 'label' => __('admin.customers'), 'icon' => 'customers', 'match' => (bool) is_active('admin/customers')],
+    ['group' => __('admin.messages.title')],
+    ['url' => '/admin/messages', 'label' => __('admin.messages.title'), 'icon' => 'mail', 'match' => (bool) is_active('admin/messages'), 'badge' => $messages],
     ['group' => __('admin.analytics_title')],
     ['url' => '/admin/analytics', 'label' => __('admin.analytics_title'), 'icon' => 'analytics', 'match' => (bool) is_active('admin/analytics')],
     ['group' => __('admin.notifications.title')],
@@ -103,9 +109,7 @@ $email = (string) ($user?->email ?? '');
 
     <?php component('app-icons'); ?>
 
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="<?= e(asset('assets/vendor/bootstrap/bootstrap.min.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/base.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/components.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/admin.css')) ?>">
@@ -308,8 +312,7 @@ $email = (string) ($user?->email ?? '');
 
 <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous" defer></script>
+<script src="<?= e(asset('assets/vendor/bootstrap/bootstrap.bundle.min.js')) ?>" defer></script>
 <script src="<?= e(asset('assets/js/app.js')) ?>" defer></script>
 <script src="<?= e(asset('assets/js/admin.js')) ?>" defer></script>
 <?php section_if('scripts'); ?>

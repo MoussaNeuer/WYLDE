@@ -44,6 +44,8 @@ final class AuditService
     public const ACTION_SIZE_CREATE      = 'size_create';
     public const ACTION_SIZE_UPDATE      = 'size_update';
     public const ACTION_SIZE_DELETE      = 'size_delete';
+    public const ACTION_MESSAGE_DELETE   = 'message_delete';
+    public const ACTION_MESSAGE_READ     = 'message_read';
 
     /**
      * Enregistre une action.

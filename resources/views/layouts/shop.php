@@ -16,7 +16,8 @@ $locale      = locale();
 $isEn        = $locale === 'en';
 ?>
 <!DOCTYPE html>
-<html lang="<?= e($locale) ?>" data-locale="<?= e($locale) ?>" data-csrf="<?= e(Csrf::token()) ?>">
+<html lang="<?= e($locale) ?>" data-locale="<?= e($locale) ?>" data-csrf="<?= e(Csrf::token()) ?>"
+      data-base="<?= e(app_base_url()) ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -43,12 +44,11 @@ $isEn        = $locale === 'en';
 
     <?php component('app-icons'); ?>
 
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="<?= e(asset('assets/vendor/bootstrap/bootstrap.min.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/base.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/components.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/shop.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/cart.css')) ?>">
 
     <?php section_if('head'); ?>
 </head>
@@ -58,17 +58,25 @@ $isEn        = $locale === 'en';
 
     <?php view_partial('components/header'); ?>
 
+  <?php view_partial('components/search-overlay'); ?>
+
     <main id="main" class="site-main">
         <?= $content ?>
     </main>
 
     <?php view_partial('components/footer'); ?>
 
+    <?php view_partial('components/cart-drawer'); ?>
+
     <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous" defer></script>
+    <script src="<?= e(asset('assets/vendor/bootstrap/bootstrap.bundle.min.js')) ?>" defer></script>
     <script src="<?= e(asset('assets/js/app.js')) ?>" defer></script>
+    <script src="<?= e(asset('assets/js/cart-drawer.js')) ?>" defer></script>
+    <script src="<?= e(asset('assets/js/quick-add.js')) ?>" defer></script>
+  <script src="<?= e(asset('assets/js/search.js')) ?>" defer></script>
+  <script src="<?= e(asset('assets/js/favorites.js')) ?>" defer></script>
+  <script src="<?= e(asset('assets/js/shop.js')) ?>" defer></script>
     <?php section_if('scripts'); ?>
 </body>
 </html>

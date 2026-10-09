@@ -61,22 +61,40 @@ final class CartController extends Controller
 
     public function update(Request $request): Response
     {
-        $variantId = $request->int('variant_id');
-        $quantity  = $request->int('quantity', 0);
-
         $cart = new \App\Models\Cart();
         $cart->load();
 
-        if ($quantity < 1) {
+        // Stock effectif par variante : il borne ce que le visiteur peut
+        // demander, et sert aussi de garde-fou contre un champ quantity[]
+        // forgé pour toucher une ligne absente du panier.
+        $limits = [];
+
+        foreach ($cart->items() as $item) {
+            $limits[(int) $item['variant_id']] = max(1, (int) $item['stock']);
+        }
+
+        $submitted = $request->post('quantity', []);
+        $plan      = cart_update_plan(is_array($submitted) ? $submitted : [], $limits);
+
+        foreach ($plan['remove'] as $variantId) {
             $cart->remove($variantId);
-        } else {
+        }
+
+        foreach ($plan['set'] as $variantId => $quantity) {
             $cart->setQuantity($variantId, $quantity);
         }
 
         if ($request->wantsJson()) {
             return $this->json([
-                'count' => $cart->count(),
-                'total' => $cart->total(),
+                'count'  => $cart->count(),
+                'total'  => $cart->total(),
+                'capped' => count($plan['capped']),
+            ]);
+        }
+
+        if ($plan['capped'] !== []) {
+            return $this->redirectWithErrors('/cart', [
+                'quantity' => trans_choice('cart.capped', max($plan['capped'])),
             ]);
         }
 

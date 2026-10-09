@@ -10,13 +10,19 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
 use App\Models\Cart;
+use App\Models\Order;
 use App\Models\ShippingZone;
+use App\Services\SettingsService;
+use App\Services\WhatsAppService;
 
 /**
  * Tunnel de commande (invité autorisé).
  *
  * Les frais de livraison et le total ne sont jamais acceptés du client :
  * ils sont recalculés côté serveur au moment du passage de commande.
+ *
+ * Le canal de confirmation est indépendant du règlement : une commande peut
+ * être réglée à la livraison ET confirmée via WhatsApp (§ orders.channel).
  */
 final class CheckoutController extends Controller
 {
@@ -35,10 +41,14 @@ final class CheckoutController extends Controller
         );
 
         return $this->view('shop/checkout', [
-            'title'      => __('checkout.title'),
-            'cart'       => $cart,
-            'quote'      => $quote,
-            'countries'  => ShippingZone::availableCountries(),
+            'title'           => __('checkout.title'),
+            'cart'            => $cart,
+            'quote'           => $quote,
+            'countries'       => ShippingZone::deliverableCountries(),
+            'whatsappEnabled' => WhatsAppService::isEnabled(),
+            // La page réserve une place en bas de l'écran pour le bandeau
+            // de total fixe, ce padding n'a lieu d'être que sur le checkout.
+            'bodyClass'       => 'page-checkout',
         ], 'layouts/shop');
     }
 
@@ -58,6 +68,9 @@ final class CheckoutController extends Controller
             return $this->redirect('/checkout');
         }
 
+        // Le devis applique le seuil de livraison offerte : à partir du
+        // seuil fixé dans l'admin, les frais tombent à zéro. Le montant
+        // final est de toute façon recalculé ici, jamais repris du client.
         $quote = ShippingZone::quote($data['country_code'], $data['city'], $cart->total());
 
         if (!$quote['available']) {
@@ -80,6 +93,19 @@ final class CheckoutController extends Controller
 
         $cart->clear();
 
+        // La commande est déjà enregistrée : on peut envoyer le client sur
+        // WhatsApp. Un lien null signifie que le numéro a été vidé entre-temps ;
+        // on retombe alors sur la page de confirmation habituelle.
+        $waLink = $this->whatsappLinkFor($reference);
+
+        if ($data['channel'] === 'whatsapp' && $waLink !== null) {
+            if ($request->wantsJson()) {
+                return $this->json(['redirect' => $waLink]);
+            }
+
+            return $this->redirect($waLink);
+        }
+
         if ($request->wantsJson()) {
             return $this->json(['redirect' => url('/order/success/' . $reference)]);
         }
@@ -89,12 +115,43 @@ final class CheckoutController extends Controller
 
     public function success(Request $request): Response
     {
-        $reference = $request->routeParam('reference', '');
+        $reference = (string) $request->routeParam('reference', '');
+        $order     = $reference !== '' ? Order::findByReference($reference) : null;
+
+        // Bouton de secours : si le client a quitté WhatsApp sans envoyer,
+        // il peut renvoyer le récapitulatif depuis cette page.
+        $whatsappLink = $order !== null ? $this->whatsappLinkFor($reference, $order) : null;
 
         return $this->view('shop/checkout-success', [
             'title'     => __('checkout.success_title'),
-            'reference' => (string) $reference,
+            'reference' => $reference,
+            'order'     => $order,
+            'whatsappLink' => $whatsappLink,
+            // Le client ne doit pas repartir chercher un lien Wave : on le
+            // rappelle ici tant que la commande n'est pas encaissée. Le
+            // lien reste celui configuré par l'équipe dans les réglages.
+            'waveLink' => $order !== null
+                && (string) ($order->getAttribute('payment_method') ?? '') === 'wave'
+                && (new SettingsService())->hasWaveLink()
+                    ? (new SettingsService())->waveLink()
+                    : null,
         ], 'layouts/shop');
+    }
+
+    /** Lien WhatsApp du récapitulatif, ou null si le canal n'est pas configuré. */
+    private function whatsappLinkFor(string $reference, ?Order $order = null): ?string
+    {
+        if (!WhatsAppService::isEnabled() || $reference === '') {
+            return null;
+        }
+
+        $order ??= Order::findByReference($reference);
+
+        if ($order === null || (string) ($order->getAttribute('channel') ?? 'site') !== 'whatsapp') {
+            return null;
+        }
+
+        return WhatsAppService::link(WhatsAppService::orderMessage($order));
     }
 
     private function requiredCart(): ?Cart
@@ -119,21 +176,30 @@ final class CheckoutController extends Controller
             'phone'        => $request->str('phone'),
             'address'      => trim($request->str('address')),
             'city'         => trim($request->str('city', '')),
-            'country_code' => strtoupper(mb_substr(trim($request->str('country_code')), 0, 2)),
+            'country_code' => strtoupper(trim($request->str('country_code'))),
             'notes'        => mb_substr($request->str('notes'), 0, 1000),
             'payment'      => in_array($request->str('payment'), ['cod', 'wave'], true)
                 ? $request->str('payment')
                 : 'cod',
+            'channel'      => $request->str('channel') === 'whatsapp'
+                ? 'whatsapp'
+                : 'site',
         ];
 
         $errors = [];
 
         if ($data['name'] === '') {
             $errors['name'] = __('validation.required', ['field' => __('checkout.full_name')]);
+        } elseif (mb_strlen($data['name'], 'UTF-8') > 80) {
+            // name est scindé en first_name / last_name (VARCHAR(80)) :
+            // une valeur trop longue ferait échouer MySQL en mode strict.
+            $errors['name'] = __('validation.max', ['field' => __('checkout.full_name'), 'max' => 80]);
         }
 
         if ($data['email'] === '' || !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             $errors['email'] = __('validation.email', ['field' => __('checkout.email')]);
+        } elseif (mb_strlen($data['email'], 'UTF-8') > 190) {
+            $errors['email'] = __('validation.max', ['field' => __('checkout.email'), 'max' => 190]);
         }
 
         if ($data['phone'] === '') {
@@ -144,18 +210,33 @@ final class CheckoutController extends Controller
 
         if ($data['address'] === '') {
             $errors['address'] = __('validation.required', ['field' => __('checkout.address')]);
+        } elseif (mb_strlen($data['address'], 'UTF-8') > 255) {
+            $errors['address'] = __('validation.max', ['field' => __('checkout.address'), 'max' => 255]);
+        }
+
+        if (mb_strlen($data['city'], 'UTF-8') > 120) {
+            $errors['city'] = __('validation.max', ['field' => __('checkout.city'), 'max' => 120]);
         }
 
         if ($data['country_code'] === '') {
             $errors['country_code'] = __('validation.required', ['field' => __('checkout.country')]);
+        } elseif (!preg_match('/^[A-Z]{2}$/', $data['country_code'])) {
+            $errors['country_code'] = __('checkout.country_invalid');
+        } elseif (!array_key_exists($data['country_code'], ShippingZone::deliverableCountries())) {
+            $errors['country_code'] = __('checkout.country_unavailable');
         }
 
         if ($data['payment'] === 'wave') {
             // Le lien Wave est validé par l'équipe : la commande reste
             // « en attente de paiement » tant que rien n'est confirmé.
-            if ((new \App\Services\SettingsService())->waveLink() === '') {
+            if ((new SettingsService())->waveLink() === '') {
                 $errors['payment'] = __('checkout.wave_unavailable');
             }
+        }
+
+        // On ne promet pas WhatsApp si le numéro a été retiré des réglages.
+        if ($data['channel'] === 'whatsapp' && !WhatsAppService::isEnabled()) {
+            $errors['channel'] = __('checkout.whatsapp_unavailable');
         }
 
         if ($errors !== []) {
@@ -173,8 +254,12 @@ final class CheckoutController extends Controller
      */
     private function persistOrder(Cart $cart, array $data, int $shippingPrice): string
     {
-        $firstName = trim(mb_substr($data['name'], 0, (int) strpos($data['name'] . ' ', ' ')));
-        $lastName  = trim(mb_substr($data['name'], strlen($firstName)));
+        // Scindé sur la première espace, en positions de caractères (le mélange
+        // strlen/mb_substr d'origine découpait mal les noms accentués).
+        $name      = $data['name'];
+        $spaceAt   = mb_strpos($name . ' ', ' ', 0, 'UTF-8');
+        $firstName = mb_substr($name, 0, $spaceAt, 'UTF-8');
+        $lastName  = trim(mb_substr($name, $spaceAt, null, 'UTF-8'));
 
         $reference = 'WY-' . strtoupper(bin2hex(random_bytes(4)));
 
@@ -206,6 +291,7 @@ final class CheckoutController extends Controller
             'status'               => 'pending',
             'payment_method'       => $data['payment'],
             'payment_status'       => 'unpaid',
+            'channel'              => $data['channel'],
             'subtotal'             => $cart->total(),
             'shipping_cost'        => $shippingPrice,
             'discount'             => 0,

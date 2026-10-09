@@ -7,10 +7,10 @@ namespace App\Controllers\Shop;
 use App\Controllers\Controller;
 use App\Core\Config;
 use App\Core\Lang;
-use App\Core\Logger;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
+use App\Models\ContactMessage;
 use App\Models\Product;
 
 /**
@@ -79,9 +79,9 @@ final class PageController extends Controller
     /**
      * Réception du formulaire de contact.
      *
-     * Aucun envoi d'email en V1 (§22) : le message est seulement journalisé
-     * et l'utilisateur reçoit une confirmation. Le filtrage spam CSRF est
-     * assuré par le middleware 'csrf' sur la route.
+     * Aucun envoi d'email en V1 (§22) : le message est conservé en base et
+     * consulté depuis le back-office. Le filtrage spam CSRF est assuré par
+     * le middleware 'csrf' sur la route.
      */
     public function submitContact(Request $request): Response
     {
@@ -96,14 +96,24 @@ final class PageController extends Controller
 
         if ($data['name'] === '') {
             $errors['name'] = __('validation.required', ['field' => __('contact.name')]);
+        } elseif (mb_strlen($data['name'], 'UTF-8') > 120) {
+            $errors['name'] = __('validation.max', ['field' => __('contact.name'), 'max' => 120]);
         }
 
         if ($data['email'] === '' || !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             $errors['email'] = __('validation.email', ['field' => __('contact.email')]);
+        } elseif (mb_strlen($data['email'], 'UTF-8') > 190) {
+            $errors['email'] = __('validation.max', ['field' => __('contact.email'), 'max' => 190]);
+        }
+
+        if (mb_strlen($data['subject'], 'UTF-8') > 120) {
+            $errors['subject'] = __('validation.max', ['field' => __('contact.subject'), 'max' => 120]);
         }
 
         if ($data['message'] === '') {
             $errors['message'] = __('validation.required', ['field' => __('contact.message')]);
+        } elseif (mb_strlen($data['message'], 'UTF-8') > 5000) {
+            $errors['message'] = __('validation.max', ['field' => __('contact.message'), 'max' => 5000]);
         }
 
         if ($errors !== []) {
@@ -114,10 +124,15 @@ final class PageController extends Controller
                 : redirect('/contact');
         }
 
-        Logger::info('Message de contact reçu', [
-            'email'   => $data['email'],
-            'subject' => mb_substr($data['subject'], 0, 120),
+        $message = new ContactMessage();
+        $message->fill([
+            'name'    => mb_substr($data['name'], 0, 120),
+            'email'   => mb_strtolower(mb_substr($data['email'], 0, 190), 'UTF-8'),
+            'subject' => $data['subject'] !== '' ? mb_substr($data['subject'], 0, 120) : null,
+            'message' => $data['message'],
+            'ip_hash' => $request->ipHash(),
         ]);
+        $message->save();
 
         Session::flashSuccess(__('contact.sent'));
 
@@ -129,6 +144,20 @@ final class PageController extends Controller
     /**
      * Sitemap XML : pages publiques et produits publiés.
      */
+    public function robots(Request $request): Response
+    {
+        $lines = [
+            'User-agent: *',
+            'Allow: /',
+            'Disallow: /admin',
+            '',
+            'Sitemap: ' . url('/sitemap.xml'),
+            '',
+        ];
+
+        return Response::text(implode("\n", $lines));
+    }
+
     public function sitemap(Request $request): Response
     {
         $urls = [

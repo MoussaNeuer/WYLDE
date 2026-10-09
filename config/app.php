@@ -13,6 +13,22 @@ return [
     'env'      => env('APP_ENV', 'production'),
     'debug'    => (bool) env('APP_DEBUG', false),
     'url'      => rtrim((string) env('APP_URL', 'http://localhost'), '/'),
+
+    // URL de base derivée de la requête courante plutôt que de APP_URL :
+    // indispensable quand l'application est servie à la racine d'un
+    // DocumentRoot (test sur l'IP du réseau local) ou derrière un reverse
+    // proxy. Sans cela, tous les liens pointent vers le hôte configuré
+    // dans APP_URL et la page est sans CSS ni JS sur les autres hôtes.
+    'url_from_request' => env('APP_URL_FROM_REQUEST', false),
+
+    // Hôtes acceptés quand url_from_request est actif. Liste vide = tous
+    // acceptés (pratique en développement). En production, la renseigner
+    // empêche d'empoisonner les liens générés via l'en-tête Host.
+    'trusted_hosts' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('APP_TRUSTED_HOSTS', ''))
+    ))),
+
     'timezone' => env('APP_TIMEZONE', 'Africa/Dakar'),
     'locale'   => env('APP_LOCALE', 'fr'),
     'fallback_locale' => 'fr',
@@ -46,15 +62,25 @@ return [
         'low_threshold' => (int) env('STOCK_LOW_THRESHOLD', 5),
     ],
 
-    // Médias produits : formats acceptés et taille maximale.
-    // Les fichiers sont écrits dans storage/uploads, hors document root,
-    // et servis par /media/{chemin} (cf. §13.4).
-    'uploads' => [
-        'max_size'   => (int) env('UPLOAD_MAX_SIZE', 5 * 1024 * 1024),
-        'max_width'  => (int) env('UPLOAD_MAX_WIDTH', 3000),
-        'extensions' => ['jpg', 'jpeg', 'png', 'webp', 'avif'],
-        'folder'     => 'products',
-    ],
+// Médias produits : formats acceptés et taille maximale.
+      // Les fichiers sont écrits dans storage/uploads, hors document root,
+      // et servis par /media/{chemin} (cf. §13.4).
+      'uploads' => [
+          'max_size'   => (int) env('UPLOAD_MAX_SIZE', 5 * 1024 * 1024),
+          'max_width'  => (int) env('UPLOAD_MAX_WIDTH', 3000),
+          'extensions' => ['jpg', 'jpeg', 'png', 'webp', 'avif'],
+          'folder'     => 'products',
+      ],
+
+      // Variantes d'image générées à l'upload (WebP).
+      // largeurs : les suffixes -400/-800/-1600 produits à côté de l'original.
+      // quality   : qualité WebP (82 est un bon compromis poids/rendu).
+      // webp      : false pour forcer le JPEG si GD n'a pas le support WebP.
+      'media' => [
+          'widths' => [400, 800, 1600],
+          'quality' => (int) env('MEDIA_QUALITY', 82),
+          'webp'    => (bool) env('MEDIA_WEBP', true),
+      ],
 
     // Paiement. Aucune vérification automatique :
     // - cod  : paiement à la livraison, l'admin encaisse

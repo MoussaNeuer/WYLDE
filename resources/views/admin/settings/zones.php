@@ -155,6 +155,9 @@ component('toast');
                             <option value="<?= e($code) ?>"><?= e($name) ?></option>
                         <?php endforeach; ?>
                     </select>
+                    <?php if (has_error('country_code')): ?>
+                        <p class="admin-field__error"><?= e((string) error_for('country_code')) ?></p>
+                    <?php endif; ?>
                     <p class="admin-field__hint"><?= e(__('admin.shipping.city_hint')) ?></p>
                 </div>
 
@@ -166,6 +169,9 @@ component('toast');
                 <div class="admin-field">
                     <label for="nz-price"><?= e(__('admin.shipping.price')) ?></label>
                     <input type="number" id="nz-price" name="price" min="0" step="100" value="<?= e((string) old('price', '0')) ?>">
+                    <?php if (has_error('price')): ?>
+                        <p class="admin-field__error"><?= e((string) error_for('price')) ?></p>
+                    <?php endif; ?>
                 </div>
 
                 <label class="admin-check">

@@ -44,7 +44,7 @@ $credit = site_credit();
         </div>
 
         <div class="site-footer__bottom">
-            <p>&copy; <?= e($year) ?> <?= e(config('app.name', 'WYLDE')) ?>. <?= e(__('page.terms')) ?>.</p>
+            <p>&copy; <?= e($year) ?> <?= e(config('app.name', 'WYLDE')) ?>. <?= e(__('page.rights_reserved')) ?>.</p>
 
             <div class="site-footer__meta">
                 <?php if ($credit['name'] !== ''): ?>
@@ -58,10 +58,6 @@ $credit = site_credit();
                         <?php endif; ?>
                     </p>
                 <?php endif; ?>
-
-                <a href="<?= e(url('/locale/' . alt_locale())) ?>" lang="<?= e(alt_locale()) ?>">
-                    <?= e(strtoupper(alt_locale())) ?>
-                </a>
             </div>
         </div>
     </div>

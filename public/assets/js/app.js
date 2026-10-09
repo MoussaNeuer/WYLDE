@@ -12,6 +12,21 @@
     let CSRF = root.dataset.csrf || '';
     const LOCALE = root.dataset.locale || 'fr';
 
+    /* ── URL de base : indispensable en installation sous-dossier ──
+       app_base_url() est rendu par le serveur sur <html data-base>.
+       Sans lui, une API appelée en '/api/cart' casserait dès que le
+       site est servi depuis /WYLDE/public/. Le repli sur '/' ne sert
+       qu'au cas où l'attribut manquerait.                        */
+
+    let BASE = root.dataset.base || '/';
+
+    /** Construit une URL absolue à partir d'un chemin interne. */
+    function apiUrl(path) {
+        const target = new URL(path.replace(/^\/+/, ''), 'https://wylde.invalid/');
+
+        return BASE.replace(/\/*$/, '/') + target.pathname + target.search;
+    }
+
     /* ── Jeton CSRF : lu et mis à jour après chaque réponse ─────── */
 
     const csrf = {
@@ -69,7 +84,14 @@
         return payload || {};
     }
 
-    window.Wylde = { api, csrf, locale: LOCALE };
+    window.Wylde = { api, csrf, locale: LOCALE, apiUrl };
+
+    // Un échange de page peut changer de préfixe : la base suit le DOM.
+    window.Wylde.syncBase = () => {
+        if (root.dataset.base) {
+            BASE = root.dataset.base;
+        }
+    };
 
     /* ── Toasts ─────────────────────────────────────────────────── */
 
@@ -135,7 +157,7 @@
         }
 
         try {
-            const data = await api(window.location.origin + '/api/cart');
+            const data = await api(apiUrl('/api/cart'));
             const count = (data && data.count) || 0;
 
             badge.dataset.count = String(count);
@@ -382,6 +404,70 @@
         window.addEventListener('scroll', onScroll, { passive: true });
     }
 
+    /* ── Menu mobile : hamburger animé + overlay plein écran ────── */
+
+    let mobileNavBound = false;
+
+    function initMobileNav() {
+        const panel = document.querySelector('#mobileNav');
+        const burger = document.querySelector('.site-header__burger');
+
+        // L'offcanvas est recréé à chaque échange de page : on marque l'état
+        // sur <html>, qui survit au remplacement du <body>.
+        if (panel && panel.classList.contains('show')) {
+            root.classList.add('is-nav-open');
+        }
+
+        if (mobileNavBound) {
+            return;
+        }
+
+        mobileNavBound = true;
+
+        // Événements Bootstrap : ils remontent jusqu'au document, donc ils
+        // survivent au remplacement de l'offcanvas.
+        document.addEventListener('show.bs.offcanvas', (event) => {
+            if (event.target && event.target.id === 'mobileNav') {
+                root.classList.add('is-nav-open');
+                bodyLock(true);
+            }
+        });
+
+        document.addEventListener('hidden.bs.offcanvas', (event) => {
+            if (event.target && event.target.id === 'mobileNav') {
+                root.classList.remove('is-nav-open');
+                bodyLock(false);
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && root.classList.contains('is-nav-open')) {
+                const instance = window.bootstrap
+                    && window.bootstrap.Offcanvas
+                    && window.bootstrap.Offcanvas.getInstance(document.querySelector('#mobileNav'));
+
+                if (instance) {
+                    instance.hide();
+                }
+            }
+        });
+
+        function bodyLock(locked) {
+            if (locked) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Le focus revient sur le bouton qui a ouvert le panneau.
+        document.addEventListener('hidden.bs.offcanvas', (event) => {
+            if (event.target && event.target.id === 'mobileNav' && burger) {
+                burger.focus({ preventScroll: true });
+            }
+        });
+    }
+
     /* ══════════════════════════════════════════════════════════════
        NAVIGATION INSTANTANÉE
        Les liens internes sont récupérés en arrière-plan (au survol, au
@@ -610,6 +696,12 @@
             root.dataset.locale = doc.documentElement.dataset.locale;
         }
 
+        // Préfixe d'installation : la base est reconstruite sur chaque échange.
+        if (doc.documentElement.dataset.base) {
+            root.dataset.base = doc.documentElement.dataset.base;
+            window.Wylde.syncBase();
+        }
+
         if (doc.documentElement.dataset.scope !== undefined) {
             root.dataset.scope = doc.documentElement.dataset.scope;
         }
@@ -785,11 +877,16 @@
 
     function refresh() {
         initHeader();
+        initMobileNav();
         initReveal();
         initCountUp();
     }
 
     function boot() {
+        // Signale à la feuille de style que le script tourne : les effets
+        // de révélation ne masquent le contenu que dans ce cas.
+        root.classList.add('js');
+
         refresh();
         initConfirmations();
         initLoading();

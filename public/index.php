@@ -80,6 +80,22 @@ try {
     exit;
 }
 
+// ── Politique de cache navigateur ─────────────────────────────────
+// session_cache_limiter('') nous laisse maître des en-têtes : on cache
+// les pages publiques en GET/HEAD pour que le bouton « Retour » restaure
+// la page sans rechargement, et on laisse tout le reste (admin, login,
+// tunnel de commande, API, erreurs, redirections…) en no-store.
+if (!$response->hasHeader('Cache-Control')) {
+    $cacheable = in_array($request->method(), ['GET', 'HEAD'], true)
+        && str_starts_with($response->header('Content-Type', ''), 'text/html')
+        && preg_match('#^(admin|api|auth|login|register|forgot|reset|checkout|cart|account|order)(/|$)#', (string) $request->path()) !== 1;
+
+    $response->setHeader(
+        'Cache-Control',
+        $cacheable ? 'private, max-age=300' : 'no-store, no-cache, must-revalidate'
+    );
+}
+
 // 6. Journalisation de la requête si nécessaire.
 if (Config::isDebug()) {
     Logger::debug(sprintf(

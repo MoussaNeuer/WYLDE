@@ -47,6 +47,18 @@ $router->get('/terms', 'Shop\PageController@terms');
 $router->get('/api/search', 'Api\SearchApiController@index')
     ->middleware(['rate_limit']);
 
+// Page suivante de la boutique, rendue côté serveur : « Charger plus »
+// remplace la pagination et ne doit pas dupliquer la carte en JS.
+$router->get('/api/shop/products', 'Api\ShopApiController@products')
+    ->middleware(['rate_limit']);
+
+// Cartes produit par identifiants, pour la page « Mes favoris ».
+$router->get('/api/products/cards', 'Api\ProductApiController@cards')
+    ->middleware(['rate_limit']);
+
+// ── Favoris (contenu du navigateur, sans compte) ───────────────────────
+$router->get('/favorites', 'Shop\FavoritesController@index');
+
 // ── Panier ────────────────────────────────────────────────────────────
 $router->get('/cart', 'Shop\CartController@index');
 $router->post('/cart/add', 'Shop\CartController@add')
@@ -85,6 +97,7 @@ $router->get('/media/{path}', 'Api\MediaController@show')
 
 // ── SEO ───────────────────────────────────────────────────────────────
 $router->get('/sitemap.xml', 'Shop\PageController@sitemap');
+$router->get('/robots.txt', 'Shop\PageController@robots');
 $router->get('/site.webmanifest', 'Shop\PageController@manifest');
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -197,6 +210,12 @@ $router->group(['admin'], 'admin');
     // ── Notifications et aide (menu du back-office) ────────────────────
     $router->get('/notifications', 'Admin\NotificationController@index');
     $router->get('/help',          'Admin\HelpController@index');
+
+    // ── Messages de contact ───────────────────────────────────────────
+    $router->get('/messages',      'Admin\ContactMessageController@index');
+    $router->get('/messages/{id}', 'Admin\ContactMessageController@show');
+    $router->post('/messages/{id}/delete', 'Admin\ContactMessageController@destroy')
+        ->middleware(['csrf']);
 
     // ── Paramètres, zones de livraison, profil, sécurité ───────────────
     $router->get('/settings',         'Admin\SettingsController@index');

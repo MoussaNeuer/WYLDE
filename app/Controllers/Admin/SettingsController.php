@@ -21,6 +21,15 @@ use App\Services\SettingsService;
 final class SettingsController extends AdminController
 {
     /**
+     * Erreurs de validation rencontrées par zoneData().
+     *
+     * zoneData() rend null pour « label manquant » comme pour les autres
+     * erreurs : ce tableau lève l'ambiguïté aux appelants.
+     *
+     * @var array<string, string>
+     */
+    private array $zoneErrors = [];
+    /**
      * Clés modifiables depuis l'interface, avec leur libellé.
      *
      * @return array<string, string>
@@ -34,6 +43,21 @@ final class SettingsController extends AdminController
         'wave_payment_link' => 'Lien Wave Business',
         'credit_name'       => 'Crédit « site créé par »',
         'credit_url'        => 'Lien du site du créateur',
+        'whatsapp_number'   => 'Numéro WhatsApp (commandes)',
+        'whatsapp_enabled'  => 'Activer la commande via WhatsApp',
+        'whatsapp_message'  => 'Message d’introduction WhatsApp',
+        'free_shipping_threshold' => 'Livraison offerte à partir de (XOF)',
+    ];
+
+    /**
+     * Clés numériques : un seuil négatif ou non entier casserait le
+     * calcul de la barre de progression, on le refuse donc au lieu de
+     * le laisser passer en base.
+     *
+     * @var array<string, int>
+     */
+    private const INT_KEYS = [
+        'free_shipping_threshold' => 0,
     ];
 
     /**
@@ -41,12 +65,23 @@ final class SettingsController extends AdminController
      */
     private const URL_KEYS = ['wave_payment_link', 'credit_url'];
 
+    /**
+     * Clés gérées par une case à cocher : absentes du POST = désactivées.
+     *
+     * @var array<int, string>
+     */
+    private const BOOL_KEYS = ['whatsapp_enabled'];
+
     public function index(Request $request): Response
     {
         $values = [];
 
         foreach (self::KEYS as $key => $label) {
-            $values[$key] = (string) SettingsService::get($key, '');
+            $values[$key] = in_array($key, self::BOOL_KEYS, true)
+                // La case est cochée quand la valeur est vraie : on stocke
+                // « 1 » et la vue compare à « 1 ».
+                ? (SettingsService::getBool($key, false) ? '1' : '')
+                : (string) SettingsService::get($key, '');
         }
 
         return $this->view('admin/settings/index', [
@@ -65,12 +100,43 @@ final class SettingsController extends AdminController
         $pairs = [];
 
         foreach (self::KEYS as $key => $label) {
+            // Une case à cocher absente du POST doit restrictive à « 0 »,
+            // sinon impossible de désactiver une option.
+            if (in_array($key, self::BOOL_KEYS, true)) {
+                $pairs[$key] = $request->str($key) === '1' ? '1' : '0';
+
+                continue;
+            }
+
             $value = trim($request->str($key));
 
             if (in_array($key, self::URL_KEYS, true) && $value !== '' && !str_starts_with($value, 'https://')) {
                 return $this->redirectWithErrors('/admin/settings', [
                     $key => 'Le lien doit commencer par https://',
                 ], $request->all());
+            }
+
+            if (array_key_exists($key, self::INT_KEYS)) {
+                $min = self::INT_KEYS[$key];
+
+                // Champ vide = seuil désactivé : c'est ce que l'équipe veut
+                // quand elle ne fait pas de livraison offerte.
+                if ($value === '') {
+                    $pairs[$key] = '0';
+
+                    continue;
+                }
+
+                if (!ctype_digit($value) || (int) $value < $min) {
+                    return $this->redirectWithErrors('/admin/settings', [
+                        $key => 'Ce montant doit être un nombre entier'
+                            . ($min > 0 ? ' supérieur ou égal à ' . $min . '.' : '.'),
+                    ], $request->all());
+                }
+
+                $pairs[$key] = (string) (int) $value;
+
+                continue;
             }
 
             $pairs[$key] = $value;
@@ -109,7 +175,11 @@ final class SettingsController extends AdminController
         $data = $this->zoneData($request);
 
         if ($data === null) {
-            return $this->redirectWithErrors('/admin/shipping-zones', ['label' => __('validation.required', ['field' => __('admin.shipping.label')])], $request->all());
+            $errors = $this->zoneErrors !== []
+                ? $this->zoneErrors
+                : ['label' => __('validation.required', ['field' => __('admin.shipping.label')])];
+
+            return $this->redirectWithErrors('/admin/shipping-zones', $errors, $request->all());
         }
 
         self::enforceSingleDefault($data);
@@ -128,7 +198,11 @@ final class SettingsController extends AdminController
         $data = $this->zoneData($request);
 
         if ($data === null) {
-            return $this->redirectWithErrors('/admin/shipping-zones', ['label' => __('validation.required', ['field' => __('admin.shipping.label')])], $request->all());
+            $errors = $this->zoneErrors !== []
+                ? $this->zoneErrors
+                : ['label' => __('validation.required', ['field' => __('admin.shipping.label')])];
+
+            return $this->redirectWithErrors('/admin/shipping-zones', $errors, $request->all());
         }
 
         self::enforceSingleDefault($data);
@@ -174,9 +248,15 @@ final class SettingsController extends AdminController
 
     /**
      * @return array<string, mixed>|null
+     *
+     * Retourne null dès qu'une erreur de validation survient ; les messages
+     * sont alors dans $this->zoneErrors (le label vide rend null SANS
+     * remplir zoneErrors, pour conserver le comportement historique).
      */
     private function zoneData(Request $request): ?array
     {
+        $this->zoneErrors = [];
+
         $label = trim($request->str('label'));
 
         if ($label === '') {
@@ -184,8 +264,29 @@ final class SettingsController extends AdminController
         }
 
         $country = strtoupper(trim($request->str('country_code')));
-        $city    = trim($request->str('city'));
-        $price   = max(0, $request->int('price'));
+
+        // country_code est VARCHAR(2) + ENUM-like par la liste : un code qui
+        // n'est pas exactement 2 lettres (ex. « FRA ») ferait tronquer ou
+        // échouer l'écriture en mode strict → erreur claire à la place.
+        if ($country !== '' && preg_match('/^[A-Z]{2}$/', $country) !== 1) {
+            $this->zoneErrors['country_code'] = __('admin.shipping.country_code_invalid');
+        }
+
+        $priceRaw = trim($request->str('price'));
+
+        // price est DECIMAL(12,0) : une valeur non numérique ou dépassant la
+        // capacité déclencherait un 500 (Data truncated / Out of range).
+        if ($priceRaw === '' || preg_match('/^\d+$/', $priceRaw) !== 1) {
+            $this->zoneErrors['price'] = __('validation.numeric', ['field' => __('admin.shipping.price')]);
+        }
+
+        if ($this->zoneErrors !== []) {
+            return null;
+        }
+
+        $price = min((int) $priceRaw, 999999999999);
+
+        $city = trim($request->str('city'));
 
         return [
             'label'        => mb_substr($label, 0, 120),
