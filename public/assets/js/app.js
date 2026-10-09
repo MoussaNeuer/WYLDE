@@ -544,6 +544,16 @@
             }
         });
 
+        // Navigation instantanée : l'offcanvas mobile est remplacé avant
+        // que Bootstrap n'ait fini sa transition de fermeture (rarement
+        // déclenchée sur un lien) ; on libère donc le verrou immédiatement.
+        document.addEventListener('wylde:before-swap', () => {
+            if (root.classList.contains('is-nav-open')) {
+                root.classList.remove('is-nav-open');
+                bodyLock(false);
+            }
+        });
+
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape' && root.classList.contains('is-nav-open')) {
                 const instance = window.bootstrap
@@ -780,6 +790,12 @@
     }
 
     function swap(doc, url) {
+        // Les overlays ouverts (tiroir panier, menu mobile) doivent libérer
+        // le verrouillage du body avant que le DOM soit remplacé : sans ce
+        // signal, un tiroir Bootstrap démonté ne déclenche jamais hide() et
+        // la page suivante reste indisponible au défilement.
+        document.dispatchEvent(new CustomEvent('wylde:before-swap'));
+
         document.title = doc.title;
 
         const description = doc.querySelector('meta[name="description"]');

@@ -405,6 +405,38 @@
         }
     });
 
+    /* ── Fermeture avant navigation ────────────────────────────────
+       La navigation instantanée remplace le DOM : le tiroir n'a jamais
+       la chance d'émettre hide() et son verrou de défilement (Bootstrap
+       pose overflow:hidden à la volée sur <body>) resterait en place
+       sur la page suivante. On le démonte donc à la main, sans attendre
+       la transition. */
+
+    document.addEventListener('wylde:before-swap', () => {
+        const el = panel();
+
+        if (!el || !el.classList.contains('show')) {
+            drawer = null;
+            return;
+        }
+
+        el.classList.remove('show');
+
+        document.body.classList.remove('modal-open');
+
+        if (document.body.style.overflow) {
+            document.body.style.overflow = '';
+        }
+
+        const backdrop = document.querySelector('.offcanvas-backdrop');
+
+        if (backdrop) {
+            backdrop.remove();
+        }
+
+        drawer = null;
+    });
+
     if (typeof Wylde.onSwap === 'function') {
         Wylde.onSwap(() => {
             loaded = false;
