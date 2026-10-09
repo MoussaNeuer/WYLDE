@@ -49,10 +49,26 @@ final class CartController extends Controller
                 : $this->redirectWithErrors('/cart', ['quantity' => __('cart.unavailable')]);
         }
 
+        // Demande supérieure au stock : l'ajout est plafonné. On suit la
+        // même règle que la mise à jour du panier (§12.4).
+        $capped = $cart->cappedQuantity();
+
         if ($request->wantsJson()) {
-            return $this->json([
+            $payload = [
                 'count' => $cart->count(),
                 'total' => $cart->total(),
+            ];
+
+            if ($capped !== null) {
+                $payload['message'] = trans_choice('cart.capped', $capped);
+            }
+
+            return $this->json($payload);
+        }
+
+        if ($capped !== null) {
+            return $this->redirectWithErrors('/cart', [
+                'quantity' => trans_choice('cart.capped', $capped),
             ]);
         }
 

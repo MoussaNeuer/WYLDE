@@ -468,13 +468,25 @@ class Product extends BaseModel
         return $id === null ? null : $this->belongsTo(Category::class, 'category_id', $id);
     }
 
-    /** @return array<int, ProductImage> */
+    /**
+     * Galerie produit, dans l'ordre d'affichage : l'image principale en
+     * premier, puis l'ordre du drag & drop (sort_order), puis id.
+     *
+     * @return array<int, ProductImage>
+     */
     public function images(): array
     {
-        /** @var array<int, ProductImage> $images */
-        $images = $this->hasMany(ProductImage::class, 'product_id');
+        $rows = Database::select(
+            'SELECT * FROM `product_images`
+             WHERE `product_id` = :id
+             ORDER BY `is_primary` DESC, `sort_order` ASC, `id` ASC',
+            ['id' => $this->id()]
+        );
 
-        return $images;
+        return array_map(
+            static fn (array $row): ProductImage => (new ProductImage())->hydrate($row),
+            $rows
+        );
     }
 
     /** Image principale résolue par le contrôleur, sinon la première. */
@@ -683,5 +695,19 @@ class Product extends BaseModel
         }
 
         return ['WHERE ' . implode(' AND ', $clauses), $bindings];
+    }
+
+    /**
+     * Le produit figure-t-il dans un historique de commandes ?
+     *
+     * Ordres non livrés comme livrés : suppression bloquée pour préserver
+     * la traçabilité (order_items.product_id est en SET NULL sinon).
+     */
+    public function orderedCount(): int
+    {
+        return (int) Database::selectValue(
+            'SELECT COUNT(*) FROM `order_items` WHERE `product_id` = :id',
+            ['id' => $this->id()]
+        );
     }
 }

@@ -34,19 +34,33 @@ final class CartApiController extends Controller
         $cart->load();
 
         $variantId = $request->int('variant_id');
-        $quantity  = max(1, $request->int('quantity', 1));
+        $quantity  = $request->int('quantity', 1);
+
+        if ($variantId < 1 || $quantity < 1) {
+            return $this->json(['error' => __('cart.invalid')], 422);
+        }
 
         if (!$cart->add($variantId, $quantity)) {
             return $this->json(['error' => __('product.out_of_stock')], 422);
         }
 
-        return $this->json($this->payload($cart, [
+        $extra = [
             'just_added' => __('cart.added'),
             'variant_id' => $variantId,
             // Signale un ajout volontaire : le mini-panier s'ouvre alors,
             // que l'ajout vienne d'une carte ou de la fiche produit.
             'open_drawer' => true,
-        ]));
+        ];
+
+        // Demande supérieure au stock : l'ajout est plafonné et le tiroir
+        // prévient le visiteur au lieu de tronquer en silence.
+        $capped = $cart->cappedQuantity();
+
+        if ($capped !== null) {
+            $extra['message'] = trans_choice('cart.capped', $capped);
+        }
+
+        return $this->json($this->payload($cart, $extra));
     }
 
     /**

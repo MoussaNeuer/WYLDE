@@ -147,6 +147,110 @@
 
     window.Wylde.toast = toast;
 
+    /* ── Toasts rendus côté serveur ──────────────────────────────── */
+
+    // Fermeture déléguée : fonctionne aussi pour les toasts créés par
+    // Wylde.toast() et survit aux échanges de page sans re-binding.
+    let toastCloseBound = false;
+
+    function initToastClose() {
+        if (toastCloseBound) {
+            return;
+        }
+
+        toastCloseBound = true;
+
+        document.addEventListener('click', (event) => {
+            const close = event.target.closest('.toast__close');
+
+            if (close) {
+                dismiss(close.closest('.toast'));
+            }
+        });
+    }
+
+    // Disparition automatique des toasts pré-rendus par le serveur.
+    function initBakedToasts() {
+        document.querySelectorAll('.toast:not([data-baked])').forEach((el) => {
+            el.dataset.baked = '1';
+            window.setTimeout(() => dismiss(el), 6000);
+        });
+    }
+
+    /* ── Copie d'une référence en un tap (page de commande) ──────── */
+
+    let copyButtonsBound = false;
+
+    function initCopyButtons() {
+        if (copyButtonsBound) {
+            return;
+        }
+
+        copyButtonsBound = true;
+
+        document.addEventListener('click', async (event) => {
+            const button = event.target.closest('[data-copy-button]');
+
+            if (!button) {
+                return;
+            }
+
+            const source = document.querySelector('[data-copy-source]');
+
+            if (!source) {
+                return;
+            }
+
+            const idleLabel = button.textContent;
+            const doneLabel = button.dataset.copiedLabel || idleLabel;
+            const text = source.textContent.trim();
+
+            // Sur le réseau local (http://192.168.x.x) l'API Clipboard
+            // n'existe pas : repli execCommand.
+            const fallbackCopy = () => {
+                const field = document.createElement('textarea');
+
+                field.value = text;
+                field.setAttribute('readonly', '');
+                field.style.position = 'fixed';
+                field.style.top = '-1000px';
+                field.style.opacity = '0';
+
+                document.body.appendChild(field);
+                field.select();
+                field.setSelectionRange(0, text.length);
+
+                let done = false;
+
+                try {
+                    done = document.execCommand('copy');
+                } catch (error) {
+                    done = false;
+                }
+
+                document.body.removeChild(field);
+
+                return done;
+            };
+
+            let copied = false;
+
+            if (navigator.clipboard && window.isSecureContext) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    copied = true;
+                } catch (error) {
+                    copied = fallbackCopy();
+                }
+            } else {
+                copied = fallbackCopy();
+            }
+
+            button.textContent = copied ? doneLabel : idleLabel;
+            button.classList.toggle('is-copied', copied);
+        });
+    }
+
     /* ── Compteur de panier ─────────────────────────────────────── */
 
     async function refreshCartCount() {
@@ -880,6 +984,13 @@
         initMobileNav();
         initReveal();
         initCountUp();
+        initBakedToasts();
+
+        // Bouton WhatsApp : la redirection est déjà déclenchée par le
+        // contrôleur, on prépare simplement le repli visible.
+        document.querySelectorAll('[data-wa-fallback]:not(.is-ready)').forEach((el) => {
+            el.classList.add('is-ready');
+        });
     }
 
     function boot() {
@@ -891,6 +1002,8 @@
         initConfirmations();
         initLoading();
         initLocale();
+        initToastClose();
+        initCopyButtons();
         refreshCartCount();
         initFastNav();
     }

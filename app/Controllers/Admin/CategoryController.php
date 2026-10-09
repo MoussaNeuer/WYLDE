@@ -91,6 +91,16 @@ final class CategoryController extends AdminController
     {
         $category = Category::findOrFail($this->id($request));
 
+        $products = $category->productCount();
+
+        if ($products > 0) {
+            return $this->redirectWithErrors('/admin/categories', [
+                'delete' => __('admin.category.error_not_empty', [
+                    'count' => $products,
+                ]),
+            ], ['name' => $category->name]);
+        }
+
         // Ne pas retarder la suppression, mais tracer les produits orphelins :
         // le FK les bascule en category_id NULL.
         $orphans = Product::count('`category_id` = :id', ['id' => $category->id()]);

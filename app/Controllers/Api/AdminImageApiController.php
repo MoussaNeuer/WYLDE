@@ -57,11 +57,17 @@ final class AdminImageApiController extends Controller
                     continue;
                 }
 
+                $nextOrder = (int) Database::selectValue(
+                    'SELECT COALESCE(MAX(`sort_order`), -1) + 1
+                     FROM `product_images` WHERE `product_id` = :id',
+                    ['id' => (int) $product->id()]
+                );
+
                 $imageId = (int) Database::insert('product_images', [
                     'product_id' => (int) $product->id(),
                     'path'       => $result['path'],
                     'alt_text'   => null,
-                    'sort_order' => 0,
+                    'sort_order' => $nextOrder,
                     'is_primary' => $hasPrimary ? 0 : 1,
                 ]);
 

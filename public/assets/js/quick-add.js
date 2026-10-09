@@ -47,6 +47,12 @@
                 document.dispatchEvent(new CustomEvent('wylde:cart-added', {
                     detail: payload
                 }));
+
+                // La demande dépassait le stock : le serveur l'a plafonnée
+                // et on le prévient, sinon la troncature passerait inaperçue.
+                if (payload.message) {
+                    Wylde.toast(payload.message, 'warning', 3500);
+                }
             } else {
                 Wylde.toast(payload.just_added || '', 'success', 3000);
             }

@@ -26,6 +26,14 @@ class Cart
 
     private ?int $ownerUserId = null;
 
+    /** Quantité appliquée après écrêtage au stock du dernier add()/setQuantity(). */
+    private ?int $lastCapped = null;
+
+    public function cappedQuantity(): ?int
+    {
+        return $this->lastCapped;
+    }
+
     public function load(): void
     {
         $this->ownerSessionId = $this->currentSessionId();
@@ -97,7 +105,9 @@ class Cart
 
     public function add(int $variantId, int $quantity): bool
     {
-        // Aucun ajout si le produit est indisponible ou le stock insuffisant.
+        $this->lastCapped = null;
+
+        // Aucun ajout si le produit est indisponible.
         $variant = Database::selectOne(
             'SELECT v.id, v.stock, p.id AS product_id, p.status
              FROM `product_variants` v
@@ -109,6 +119,17 @@ class Cart
         if ($variant === null || (string) $variant['status'] !== 'published') {
             return false;
         }
+
+        // Une nouvelle ligne ne peut pas excéder le stock : la même borne
+        // que setQuantity(), mais appliquée dès l'insertion.
+        $limit    = max(1, (int) $variant['stock']);
+        $requested = max(1, $quantity);
+
+        if ($requested > $limit) {
+            $this->lastCapped = $limit;
+        }
+
+        $quantity = min($requested, $limit);
 
         $existing = Database::selectOne(
             'SELECT id, quantity FROM `cart_items`
@@ -141,6 +162,8 @@ class Cart
 
     public function setQuantity(int $variantId, int $quantity): bool
     {
+        $this->lastCapped = null;
+
         $existing = Database::selectOne(
             'SELECT ci.id, ci.session_id, v.stock
              FROM `cart_items` ci
@@ -155,6 +178,11 @@ class Cart
         }
 
         $max = max(1, (int) $existing['stock']);
+
+        if ($quantity > $max) {
+            $this->lastCapped = $max;
+        }
+
         $quantity = min(max(1, $quantity), $max);
 
         Database::update('cart_items', ['quantity' => $quantity], ['id' => (int) $existing['id']]);

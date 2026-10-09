@@ -57,4 +57,18 @@ class Category extends BaseModel
             )
         );
     }
+
+    /**
+     * Produits rattachés (directement ou via un enfant).
+     *
+     * Une catégorie non vide ne se supprime pas : on refuse plutôt que de
+     * laisser des produits orphelins sans catégorie.
+     */
+    public function productCount(): int
+    {
+        return (int) Database::selectValue(
+            'SELECT COUNT(*) FROM `products` WHERE `category_id` = :id',
+            ['id' => $this->id()]
+        );
+    }
 }

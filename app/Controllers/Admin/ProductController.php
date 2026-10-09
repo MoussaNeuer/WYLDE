@@ -162,6 +162,17 @@ final class ProductController extends AdminController
     {
         $product = Product::findOrFail($this->id($request));
 
+        $ordered = $product->orderedCount();
+
+        if ($ordered > 0) {
+            return $this->redirectWithErrors('/admin/products', [
+                'delete' => __('admin.product.error_in_use', [
+                    'count' => $ordered,
+                    'name'  => $product->name,
+                ]),
+            ], ['name' => $product->name]);
+        }
+
         $name = $product->name;
 
         Database::transaction(function () use ($request, $product): void {
@@ -192,7 +203,7 @@ final class ProductController extends AdminController
 
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
-        match ($action) {
+        $result = match ($action) {
             'publish' => Database::statement(
                 "UPDATE `products` SET `status` = 'published', published_at = COALESCE(published_at, NOW()) WHERE `id` IN ({$placeholders})",
                 $ids
@@ -205,10 +216,24 @@ final class ProductController extends AdminController
                 "UPDATE `products` SET `is_featured` = 1 - `is_featured` WHERE `id` IN ({$placeholders})",
                 $ids
             ),
-            'delete'  => Database::transaction(function () use ($ids, $placeholders): void {
-                $rows = Database::select(
-                    'SELECT `id`, `name` FROM `products` WHERE `id` IN (' . $placeholders . ')',
+            'delete'  => Database::transaction(function () use ($ids, $placeholders): array {
+                $orderedIds = array_column(Database::select(
+                    'SELECT DISTINCT `product_id` FROM `order_items`
+                     WHERE `product_id` IN (' . $placeholders . ') AND `product_id` IS NOT NULL',
                     $ids
+                ), 'product_id');
+
+                $safe = array_values(array_diff($ids, array_map('intval', $orderedIds)));
+
+                if ($safe === []) {
+                    return $orderedIds;
+                }
+
+                $safePlaceholders = implode(',', array_fill(0, count($safe), '?'));
+
+                $rows = Database::select(
+                    'SELECT `id`, `name` FROM `products` WHERE `id` IN (' . $safePlaceholders . ')',
+                    $safe
                 );
 
                 foreach ($rows as $row) {
@@ -217,11 +242,22 @@ final class ProductController extends AdminController
                 }
 
                 Database::statement(
-                    'DELETE FROM `products` WHERE `id` IN (' . $placeholders . ')',
-                    $ids
+                    'DELETE FROM `products` WHERE `id` IN (' . $safePlaceholders . ')',
+                    $safe
                 );
+
+                return $orderedIds;
             }),
         };
+
+        if (is_array($result) && $result !== []) {
+            return $this->redirectWithErrors('/admin/products', [
+                'delete' => __('admin.product.error_in_use', [
+                    'count' => count($result),
+                    'name'  => count($result) . ' produit(s)',
+                ]),
+            ]);
+        }
 
         AuditService::log(AuditService::ACTION_PRODUCT_BULK, 'products', null, [
             'action' => $action,
@@ -277,7 +313,7 @@ final class ProductController extends AdminController
                 'product_id' => (int) $product->id(),
                 'path'       => $result['path'],
                 'alt_text'   => null,
-                'sort_order' => 0,
+                'sort_order' => self::nextSortOrder((int) $product->id()),
                 'is_primary' => $hasPrimary ? 0 : 1,
             ]);
 
@@ -486,7 +522,7 @@ final class ProductController extends AdminController
                 'product_id' => (int) $product->id(),
                 'path'       => $result['path'],
                 'alt_text'   => null,
-                'sort_order' => 0,
+                'sort_order' => self::nextSortOrder((int) $product->id()),
                 'is_primary' => $hasPrimary ? 0 : 1,
             ]);
 
@@ -498,6 +534,14 @@ final class ProductController extends AdminController
         }
 
         return $count;
+    }
+
+    private static function nextSortOrder(int $productId): int
+    {
+        return (int) Database::selectValue(
+            'SELECT COALESCE(MAX(`sort_order`), -1) + 1 FROM `product_images` WHERE `product_id` = :id',
+            ['id' => $productId]
+        );
     }
 
     private static function auditFailed(string $action, array $errors): void

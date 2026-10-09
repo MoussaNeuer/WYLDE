@@ -90,6 +90,7 @@ return [
         'view'         => 'View',
         'details'      => 'Details',
         'close_modal'  => 'Close dialog',
+        'close' => 'Close',
         'skip_to_content' => 'Skip to content',
         'toggle_menu'  => 'Toggle menu',
         'main_menu'    => 'Main menu',
@@ -534,7 +535,8 @@ return [
             'products'       => 'Products',
             'active'         => 'Active',
             'inactive'       => 'Inactive',
-            'confirm_delete' => 'Delete category “:name”? Its products stay live without a category.',
+            'error_not_empty' => 'This category contains :count product(s). Move or delete those products before deleting it.',
+            'confirm_delete' => 'Delete category “:name”? Deletion is refused while products belong to it.',
         ],
 
         'analytics' => [
@@ -603,6 +605,7 @@ return [
             'created'       => 'Product created',
             'updated'       => 'Product updated',
             'deleted'       => 'Product deleted',
+            'error_in_use' => 'This product has already been ordered (:count). Deletion is blocked to preserve order history.',
             'confirm_delete' => 'Permanently delete “:name”?',
         ],
         'variants' => [

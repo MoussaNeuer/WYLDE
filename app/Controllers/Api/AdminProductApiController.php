@@ -69,6 +69,17 @@ final class AdminProductApiController extends Controller
     {
         $product = Product::findOrFail($this->id($request));
 
+        $ordered = $product->orderedCount();
+
+        if ($ordered > 0) {
+            return $this->json([
+                'error' => __('admin.product.error_in_use', [
+                    'count' => $ordered,
+                    'name'  => $product->name,
+                ]),
+            ], 409);
+        }
+
         $name = (string) $product->name;
 
         Database::transaction(function () use ($product): void {

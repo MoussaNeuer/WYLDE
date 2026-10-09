@@ -74,6 +74,7 @@ return [
         'view'         => 'Voir',
         'details'      => 'Détails',
         'close_modal'  => 'Fermer la fenêtre',
+        'close' => 'Fermer',
         'skip_to_content' => 'Aller au contenu',
         'toggle_menu'  => 'Ouvrir ou fermer le menu',
         'main_menu'    => 'Menu principal',
@@ -118,6 +119,14 @@ return [
         'stock_in'    => 'En stock',
         'stock_low'   => 'Plus que :count en stock',
         'stock_out'   => 'Rupture de stock',
+        'scarcity_count'   => [
+            'one'   => 'Plus que :count en stock',
+            'other' => 'Plus que :count en stock',
+        ],
+        'scarcity_in_size' => [
+            'one'   => 'Plus que :count en stock, taille :size',
+            'other' => 'Plus que :count en stock, taille :size',
+        ],
         'size'        => 'Taille',
         'size_select' => 'Choisir une taille',
         'add_to_cart' => 'Ajouter au panier',
@@ -154,6 +163,10 @@ return [
         'shipping_free'  => 'Gratuite',
         'item_count'     => 'Articles',
         'invalid'        => 'Quantité non modifiable.',
+        'capped' => [
+            'one'   => 'La quantité a été réduite au stock disponible (:count article).',
+            'other' => 'La quantité a été réduite au stock disponible (:count articles).',
+        ],
         'unavailable'    => 'Ce produit n’est pas disponible en ce moment.',
     ],
 
@@ -425,8 +438,9 @@ return [
             'sort_order'    => 'Ordre d’affichage',
             'products'      => 'Produits',
             'active'        => 'Active',
+            'error_not_empty' => 'Cette catégorie contient :count produit(s). Déplacez ou supprimez ces produits avant de la supprimer.',
             'inactive'      => 'Inactive',
-            'confirm_delete'=> 'Supprimer la catégorie « :name » ? Ses produits resteront en boutique sans catégorie.',
+            'confirm_delete'=> 'Supprimer la catégorie « :name » ? La suppression est impossible si des produits y sont rattachés.',
         ],
 
         'analytics' => [
@@ -495,6 +509,7 @@ return [
             'created'    => 'Produit créé',
             'updated'    => 'Produit mis à jour',
             'deleted'    => 'Produit supprimé',
+            'error_in_use' => 'Ce produit a déjà été commandé (:count). La suppression est bloquée pour préserver l\'historique.',
             'confirm_delete' => 'Supprimer définitivement « :name » ?',
         ],
         'variants' => [

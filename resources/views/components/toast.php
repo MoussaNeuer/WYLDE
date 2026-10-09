@@ -2,27 +2,33 @@
 /**
  * Toasts : messages de session rendus côté serveur.
  *
- * Le conteneur #toast-stack est déjà présent dans les layouts ; ce
- * composant injecte les messages flash au chargement et admin.js se
- * charge de les retirer. Les réponses AJAX utilisent la même API
- * (window.WyldeToast).
+ * Aucun script inline n'est émis : la fermeture et la disparition
+ * automatique sont gérées par app.js (délégation sur #toast-stack).
+ * Le rendu reste donc compatible avec une CSP stricte (script-src 'self').
+ *
+ * Les erreurs de session posées par redirectWithErrors() ou la validation
+ * (Session::pullErrors) sont affichées ici sous forme de toast d'erreur :
+ * c'est leur unique point de rendu dans les pages d'administration.
  */
+use App\Core\Session;
+
 $messages = $messages ?? flash();
+
+$errors = Session::pullErrors();
+
+foreach ($errors as $message) {
+    $messages[] = ['type' => 'error', 'message' => (string) $message];
+}
 
 if ($messages === []) {
     return;
 }
 ?>
-<script data-toast-flush>
-    (function () {
-        var messages = <?= json_encode($messages, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
-
-        window.addEventListener('DOMContentLoaded', function () {
-            messages.forEach(function (message) {
-                if (window.WyldeToast) {
-                    window.WyldeToast.push(message.type, message.message);
-                }
-            });
-        });
-    })();
-</script>
+<?php foreach ($messages as $message): ?>
+    <?php $type = $message['type'] ?? 'info'; ?>
+    <div class="toast toast--<?= e($type) ?>" role="<?= $type === 'error' ? 'alert' : 'status' ?>">
+        <span class="toast__icon" aria-hidden="true"><?= e(['success' => '✓', 'error' => '×', 'warning' => '!', 'info' => 'i'][$type] ?? 'i') ?></span>
+        <span class="toast__text"><?= e($message['message']) ?></span>
+        <button class="toast__close" type="button" aria-label="<?= e(__('common.close')) ?>">×</button>
+    </div>
+<?php endforeach; ?>
