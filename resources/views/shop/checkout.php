@@ -260,12 +260,38 @@ $waveAvailable = \App\Services\SettingsService::hasWaveLink();
                     </button>
 
                     <div class="summary">
-                        <?php foreach ($items as $item): ?>
-                            <div class="summary__row">
-                                <span><?= e($item['name']) ?> × <?= e((string) $item['quantity']) ?></span>
-                                <span class="amount"><?= money($item['quantity'] * $item['price']) ?></span>
-                            </div>
-                        <?php endforeach; ?>
+                        <ul class="summary__items">
+                            <?php foreach ($items as $item): ?>
+                                <li class="summary-item">
+                                    <?php if ($item['image_path'] !== null): ?>
+                                        <a class="summary-item__thumb"
+                                           href="<?= e(url('/product/' . $item['product_slug'])) ?>"
+                                           aria-hidden="true" tabindex="-1">
+                                            <img src="<?= e(upload_url((string) $item['image_path'])) ?>"
+                                                 alt="" width="56" height="70"
+                                                 loading="lazy" decoding="async">
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="summary-item__thumb summary-item__thumb--blank"></span>
+                                    <?php endif; ?>
+
+                                    <div class="summary-item__main">
+                                        <a class="summary-item__name"
+                                           href="<?= e(url('/product/' . $item['product_slug'])) ?>">
+                                            <?= e($item['name']) ?>
+                                        </a>
+                                        <p class="summary-item__meta">
+                                            <?php if (!empty($item['size'])): ?>
+                                                <span class="summary-item__size"><?= e(size_label((string) $item['size'])) ?></span>
+                                            <?php endif; ?>
+                                            <span>× <?= e((string) $item['quantity']) ?></span>
+                                        </p>
+                                    </div>
+
+                                    <span class="amount summary-item__total"><?= money($item['quantity'] * $item['price']) ?></span>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
 
                         <div class="summary__row">
                             <span><?= e(__('checkout.subtotal')) ?></span>
