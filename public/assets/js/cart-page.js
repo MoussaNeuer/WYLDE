@@ -100,7 +100,10 @@
 
         // Panier vide : on laisse la page se recharger pour afficher
         // l'état vide rendu par le serveur (titre, lien vers la boutique).
+        // Le cache LRU de la navigation est purgé d'abord : un document
+        // de la page panier déjà préchargé serait périmé après retrait.
         if (payload.empty) {
+            window.Wylde.nav.clear();
             window.Wylde.nav.go(payload.cart_url);
         }
     }

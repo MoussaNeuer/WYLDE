@@ -504,6 +504,7 @@ return [
             'today'  => 'Today',
             'week'   => '7 days',
             'month'  => '30 days',
+            'quarter' => '90 days',
             'custom' => 'Custom',
         ],
         'quick_actions' => [

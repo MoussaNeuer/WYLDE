@@ -86,9 +86,19 @@ try {
 // la page sans rechargement, et on laisse tout le reste (admin, login,
 // tunnel de commande, API, erreurs, redirections…) en no-store.
 if (!$response->hasHeader('Cache-Control')) {
+    // Request::path() renvoie un chemin qui commence par « / » (« /cart »,
+    // « /admin/orders »…) ; on compare donc le premier segment, sans quoi
+    // l'ancrage « ^ » ne matche jamais et les pages de session (panier,
+    // commande, admin…) étaient mises en cache 300 s.
+    $first = (string) (explode('/', trim((string) $request->path(), '/'))[0] ?? '');
+
     $cacheable = in_array($request->method(), ['GET', 'HEAD'], true)
         && str_starts_with($response->header('Content-Type', ''), 'text/html')
-        && preg_match('#^(admin|api|auth|login|register|forgot|reset|checkout|cart|account|order)(/|$)#', (string) $request->path()) !== 1;
+        && !in_array(
+            $first,
+            ['admin', 'api', 'auth', 'login', 'register', 'forgot', 'reset', 'checkout', 'cart', 'account', 'order'],
+            true
+        );
 
     $response->setHeader(
         'Cache-Control',

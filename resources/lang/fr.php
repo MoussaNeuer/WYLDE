@@ -168,6 +168,11 @@ return [
             'other' => 'La quantité a été réduite au stock disponible (:count articles).',
         ],
         'unavailable'    => 'Ce produit n’est pas disponible en ce moment.',
+        'free_shipping' => [
+            'remaining' => 'Encore :amount avant la livraison offerte.',
+            'reached'   => 'Livraison offerte débloquée.',
+            'off'       => 'Livraison offerte dès :amount.',
+        ],
     ],
 
     'checkout' => [
@@ -408,6 +413,7 @@ return [
             'today' => 'Aujourd’hui',
             'week'  => '7 jours',
             'month' => '30 jours',
+            'quarter' => '90 jours',
             'custom'=> 'Personnalisé',
         ],
         'quick_actions' => [

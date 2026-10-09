@@ -47,7 +47,7 @@ foreach ($series as $point) {
         ]); ?>
 
         <?php component('stat-card', [
-            'label' => __('admin.kpi.orders') . ' (7 j)',
+            'label' => __('admin.kpi.orders') . ' (' . __('admin.period.week') . ')',
             'value' => (string) $summary['orders_week'],
             'hint'  => $summary['pending_orders'] > 0
                 ? $summary['pending_orders'] . ' ' . __('order.status.pending')

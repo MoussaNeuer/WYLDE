@@ -3,6 +3,8 @@
  * Analytics : tendances, répartition et meilleurs clients.
  *
  * @var int   $days
+ * @var array<int, string> $periods
+ * @var string $periodLabel
  * @var array{current: array<string, int>, previous: array<string, int>, delta: array<string, mixed>} $comparison
  * @var array<int, array{date: string, label: string, revenue: int, orders: int}> $series
  * @var array<int, array<string, mixed>> $weekdays
@@ -40,7 +42,7 @@ $trend = static function (mixed $value): string {
         <h1 class="admin-page__title"><?= e(__('admin.analytics_title')) ?></h1>
 
         <div class="admin-page__tools">
-            <?php foreach ([7 => __('admin.period.week'), 30 => __('admin.period.month'), 90 => '90 j'] as $value => $text): ?>
+            <?php foreach ($periods as $value => $text): ?>
                 <a class="btn btn-sm <?= $days === $value ? 'btn-light' : 'btn-outline-light' ?>"
                    href="<?= e(url('/admin/analytics?days=' . $value)) ?>"><?= e($text) ?></a>
             <?php endforeach; ?>
@@ -96,7 +98,7 @@ $trend = static function (mixed $value): string {
                 </div>
 
                 <p class="chart__caption">
-                    <?= e(money($current['revenue'])) ?> — <?= e(__('admin.period.month')) ?> ·
+                    <?= e(money($current['revenue'])) ?> — <?= e($periodLabel) ?> ·
                     <?= e(__('admin.orders')) ?> : <?= e((string) $current['orders']) ?>
                 </p>
             </div>

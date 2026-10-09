@@ -86,7 +86,7 @@ final class AdminOrderApiController extends Controller
     /** Chiffres clés du back-office, pour rafraîchir le tableau de bord. */
     public function stats(Request $request): Response
     {
-        $days = max(7, min(180, $request->int('days', 30)));
+        $days = AnalyticsService::normalizeDays($request->int('days'), 30);
 
         return $this->json([
             'summary'       => AnalyticsService::summary(),

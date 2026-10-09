@@ -16,7 +16,13 @@ final class AnalyticsController extends AdminController
 {
     public function index(Request $request): Response
     {
-        $days = max(7, min(180, $request->int('days', 30)));
+        $days = AnalyticsService::normalizeDays($request->int('days'), 30);
+
+        $periods = [];
+
+        foreach (AnalyticsService::periods() as $value => $label) {
+            $periods[$value] = __('admin.period.' . $label);
+        }
 
         $comparison = AnalyticsService::comparison($days);
         $series     = AnalyticsService::revenueSeries($days);
@@ -28,6 +34,8 @@ final class AnalyticsController extends AdminController
         return $this->view('admin/analytics/index', [
             'title'       => __('admin.analytics_title'),
             'days'        => $days,
+            'periods'     => $periods,
+            'periodLabel' => __('admin.period.' . AnalyticsService::periodLabel($days)),
             'comparison'  => $comparison,
             'series'      => $series,
             'weekdays'    => $weekdays,

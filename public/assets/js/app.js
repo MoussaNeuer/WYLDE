@@ -684,6 +684,12 @@
                     Accept: 'text/html',
                     'X-Requested-With': 'XMLHttpRequest'
                 },
+                // On court-circuite le cache navigateur : ces pages sont
+                // liées à la session (panier, commande…) et le cache LRU
+                // ci-dessus reste la seule source de mise en cache. Sans
+                // cela, une réponse « private, max-age » erronée ou un
+                // retour arrière servait un HTML périmé.
+                cache: 'no-store',
                 signal: controller ? controller.signal : undefined
             });
 

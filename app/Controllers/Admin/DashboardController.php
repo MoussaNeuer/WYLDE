@@ -21,7 +21,7 @@ final class DashboardController extends AdminController
         $orders      = Order::recent(8);
         $byStatus    = AnalyticsService::ordersByStatus();
         $topProducts = AnalyticsService::topProducts(5);
-        $series      = AnalyticsService::revenueSeries(14);
+        $series      = AnalyticsService::revenueSeries(7);
 
         return $this->view('admin/dashboard', [
             'title'       => __('admin.dashboard'),

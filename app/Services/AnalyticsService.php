@@ -19,6 +19,41 @@ use App\Models\Product;
 final class AnalyticsService
 {
     /**
+     * Périodes affichables du back-office : une seule source pour le menu
+     * de la page analytics, la borne de durées et les libellés i18n.
+     */
+    public const PERIODS = [7, 30, 90];
+
+    /** Libellé i18n (suffixe de admin.period.*) associé à chaque période. */
+    public const PERIOD_LABELS = [
+        7  => 'week',
+        30 => 'month',
+        90 => 'quarter',
+    ];
+
+    /**
+     * Borne une durée en jours dans les limites du back-office.
+     */
+    public static function normalizeDays(int $days, int $default = 30, int $max = 180): int
+    {
+        $value = $days < 1 ? $default : $days;
+
+        return max(7, min($max, $value));
+    }
+
+    /** @return array<int, string> */
+    public static function periods(): array
+    {
+        return self::PERIOD_LABELS;
+    }
+
+    /** Libellé de la période couramment sélectionnée. */
+    public static function periodLabel(int $days): string
+    {
+        return self::PERIOD_LABELS[$days] ?? 'custom';
+    }
+
+    /**
      * Compteurs de base du tableau de bord.
      *
      * @return array<string, int>
@@ -82,7 +117,7 @@ final class AnalyticsService
      */
     public static function revenueSeries(int $days = 14): array
     {
-        $days = max(7, min(180, $days));
+        $days = self::normalizeDays($days, 14);
         $from = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
 
         $rows = Database::select(
@@ -170,7 +205,7 @@ final class AnalyticsService
      */
     public static function weekdayBreakdown(int $days = 90): array
     {
-        $from = date('Y-m-d 00:00:00', strtotime('-' . max(7, min(365, $days)) . ' days'));
+        $from = date('Y-m-d 00:00:00', strtotime('-' . self::normalizeDays($days, 90, 365) . ' days'));
 
         $rows = Database::select(
             'SELECT DAYOFWEEK(`created_at`) AS dow,
@@ -214,7 +249,7 @@ final class AnalyticsService
      */
     public static function comparison(int $days = 30): array
     {
-        $days = max(7, min(180, $days));
+        $days = self::normalizeDays($days, 30);
 
         $currentFrom  = date('Y-m-d 00:00:00', strtotime('-' . ($days - 1) . ' days'));
         $previousFrom = date('Y-m-d 00:00:00', strtotime('-' . (2 * $days - 1) . ' days'));
