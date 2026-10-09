@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Core\Database;
 use InvalidArgumentException;
+use JsonSerializable;
 use PDO;
 use ReflectionClass;
 use ReflectionProperty;
@@ -16,7 +17,7 @@ use ReflectionProperty;
  * Le nom de table est déduit du nom de classe (Product -> products).
  * Les montants et identifiants sont hydratés avec le type PHP correct.
  */
-abstract class BaseModel
+abstract class BaseModel implements JsonSerializable
 {
     /** @var array<string, mixed> */
     protected array $attributes = [];
@@ -120,6 +121,18 @@ abstract class BaseModel
     public function toArray(): array
     {
         return $this->attributes;
+    }
+
+    /**
+     * Sérialisation JSON : un modèle doit survivre à un passage dans le
+     * cache (json_encode) sans perdre ses données. Sans cela, Cache::put
+     * écrirait « {} » et la page lue depuis le cache serait vide.
+     *
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): array
+    {
+        return $this->toArray();
     }
 
     public function exists(): bool
