@@ -1,0 +1,858 @@
+/* ══════════════════════════════════════════════════════════════════
+   WYLDE — lot B : achat fluide
+   Contrôle quantité partagé (mini-panier, panier, fiche produit),
+   barre de livraison offerte et pastilles de tailles.
+   Dépend des variables de base.css.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Contrôle quantité : « − », valeur, « + » ──────────────────
+   Un seul composant pour le tiroir, la page panier et la fiche
+   produit : même cible tactile sur les trois écrans.              */
+
+.qty-stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-pill);
+    background: var(--w-bg);
+}
+
+.qty-stepper__btn {
+    display: grid;
+    place-items: center;
+    width: var(--w-tap);
+    height: var(--w-tap);
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--w-text);
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background var(--w-t-fast), color var(--w-t-fast);
+}
+
+.qty-stepper__btn:hover:not(:disabled) {
+    background: var(--w-bg-alt);
+}
+
+.qty-stepper__btn:focus-visible {
+    outline: none;
+    box-shadow: var(--w-ring);
+}
+
+.qty-stepper__btn:disabled {
+    color: var(--w-text-muted);
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.qty-stepper__value {
+    min-width: 2.25rem;
+    text-align: center;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Variante compacte : tiroir et panier sur téléphone. */
+.qty-stepper--sm {
+    padding: 2px;
+}
+
+.qty-stepper--sm .qty-stepper__btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1.125rem;
+}
+
+.qty-stepper--sm .qty-stepper__value {
+    min-width: 1.75rem;
+    font-size: var(--w-size-sm);
+}
+
+/* ── Barre de livraison offerte ─────────────────────────────── */
+
+.freeship {
+    display: grid;
+    gap: var(--w-space-2, 8px);
+    padding: 14px 16px;
+    border-radius: var(--w-radius);
+    background: var(--w-surface);
+}
+
+.freeship__text {
+    margin: 0;
+    font-size: var(--w-size-sm);
+    font-weight: 500;
+}
+
+.freeship__track {
+    height: 6px;
+    border-radius: var(--w-radius-pill);
+    background: var(--w-bg-alt);
+    overflow: hidden;
+}
+
+.freeship__fill {
+    display: block;
+    height: 100%;
+    border-radius: var(--w-radius-pill);
+    background: var(--w-accent);
+    transition: width var(--w-t-slow);
+}
+
+.freeship--reached .freeship__text {
+    color: var(--w-success);
+    font-weight: 600;
+}
+
+/* ── Mini-panier en tiroir ──────────────────────────────────── */
+
+.cart-drawer {
+    --bs-offcanvas-width: min(420px, 100vw);
+}
+
+.cart-drawer__header {
+    align-items: center;
+    border-bottom: 1px solid var(--w-border);
+    padding: 16px 20px;
+}
+
+.cart-drawer__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 700;
+}
+
+.cart-drawer__count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: var(--w-radius-pill);
+    background: var(--w-accent);
+    color: var(--w-bg);
+    font-size: var(--w-size-xs);
+    font-weight: 700;
+}
+
+.cart-drawer__close {
+    border: 0;
+    background: transparent;
+    color: var(--w-text);
+    font-size: 1.75rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.cart-drawer__body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px 20px;
+}
+
+.cart-drawer__shipping {
+    display: grid;
+    gap: 8px;
+}
+
+.cart-drawer__shipping-text {
+    margin: 0;
+    font-size: var(--w-size-sm);
+    font-weight: 500;
+}
+
+.cart-drawer__shipping-track {
+    height: 6px;
+    border-radius: var(--w-radius-pill);
+    background: var(--w-bg-alt);
+    overflow: hidden;
+}
+
+.cart-drawer__shipping-fill {
+    display: block;
+    height: 100%;
+    border-radius: var(--w-radius-pill);
+    background: var(--w-accent);
+    transition: width var(--w-t-slow);
+}
+
+.cart-drawer__items {
+    display: grid;
+    gap: 4px;
+}
+
+.cart-drawer__row {
+    display: grid;
+    grid-template-columns: 72px 1fr auto;
+    gap: 12px;
+    align-items: start;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--w-border);
+}
+
+.cart-drawer__row:last-child {
+    border-bottom: 0;
+}
+
+.cart-drawer__thumb {
+    display: block;
+    width: 72px;
+    aspect-ratio: 4 / 5;
+    border-radius: var(--w-radius-sm);
+    overflow: hidden;
+    background: var(--w-bg-alt);
+}
+
+.cart-drawer__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.cart-drawer__thumb--blank {
+    display: block;
+}
+
+.cart-drawer__row-body {
+    display: grid;
+    gap: 6px;
+    justify-items: start;
+    min-width: 0;
+}
+
+.cart-drawer__row-name {
+    color: var(--w-text);
+    font-size: var(--w-size-sm);
+    font-weight: 600;
+    text-decoration: none;
+    line-height: 1.3;
+}
+
+.cart-drawer__row-name:hover {
+    text-decoration: underline;
+}
+
+.cart-drawer__row-size {
+    padding: 2px 8px;
+    border-radius: var(--w-radius-pill);
+    background: var(--w-bg-alt);
+    font-size: var(--w-size-xs);
+    font-weight: 600;
+}
+
+.cart-drawer__row-total {
+    font-size: var(--w-size-sm);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.cart-drawer__row-remove {
+    border: 0;
+    background: transparent;
+    color: var(--w-text-muted);
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+}
+
+.cart-drawer__row-remove:hover {
+    color: var(--w-danger);
+    background: var(--w-bg-alt);
+}
+
+.cart-drawer__empty {
+    margin: 0;
+    color: var(--w-text-muted);
+    font-size: var(--w-size-sm);
+    text-align: center;
+    padding: 32px 0;
+}
+
+.cart-drawer__footer {
+    display: grid;
+    gap: 10px;
+    padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--w-border);
+    background: var(--w-bg);
+}
+
+.cart-drawer__total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: var(--w-size-sm);
+}
+
+.cart-drawer__total strong {
+    font-size: 1.125rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.cart-drawer__checkout {
+    width: 100%;
+    min-height: var(--w-tap);
+    border-radius: var(--w-radius-pill);
+    font-weight: 600;
+}
+
+.cart-drawer__view {
+    color: var(--w-text-muted);
+    font-size: var(--w-size-sm);
+    text-align: center;
+    text-decoration: underline;
+}
+
+/* ── Page panier ────────────────────────────────────────────── */
+
+/* Deux colonnes sur grand écran : les lignes à gauche, le résumé
+   collé à droite. Une seule colonne sur téléphone, résumé en bas. */
+.cart-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--w-space-6);
+    align-items: start;
+}
+
+.cart-lines {
+    display: grid;
+    gap: var(--w-space-3);
+}
+
+/* Chaque ligne est une carte : vignette à gauche, contenu à droite. */
+.cart-line {
+    display: grid;
+    grid-template-columns: 80px minmax(0, 1fr);
+    gap: 14px;
+    padding: var(--w-space-4);
+    background: var(--w-bg);
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-lg);
+    box-shadow: var(--w-shadow-xs);
+}
+
+.cart-line__thumb {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    border-radius: var(--w-radius-sm);
+    overflow: hidden;
+    background: var(--w-bg-alt);
+}
+
+.cart-line__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.cart-line__thumb--blank {
+    background: var(--w-bg-alt);
+}
+
+.cart-line__main {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+}
+
+.cart-line__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--w-space-3);
+}
+
+.cart-line__info {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.cart-line__name {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    line-height: 1.35;
+    color: var(--w-text);
+    text-decoration: none;
+    transition: opacity var(--w-t-fast);
+}
+
+.cart-line__name:hover {
+    opacity: 0.75;
+}
+
+.cart-line__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: var(--w-size-sm);
+    color: var(--w-text-muted);
+}
+
+.cart-line__size {
+    padding: 2px 10px;
+    border-radius: var(--w-radius-pill);
+    background: var(--w-bg-alt);
+    font-size: var(--w-size-xs);
+    font-weight: 700;
+    color: var(--w-text);
+}
+
+.cart-line__remove {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--w-radius-pill);
+    background: transparent;
+    color: var(--w-text-muted);
+    cursor: pointer;
+    transition: color var(--w-t-fast), background-color var(--w-t-fast);
+}
+
+.cart-line__remove:hover {
+    color: var(--w-danger);
+    background: var(--w-bg-alt);
+}
+
+.cart-line__bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--w-space-3);
+}
+
+.cart-line__total {
+    font-size: var(--w-size-lg);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Résumé latéral */
+.cart-aside {
+    min-width: 0;
+}
+
+.cart-summary {
+    display: grid;
+    gap: var(--w-space-3);
+}
+
+.cart-summary__title {
+    margin: 0;
+    font-size: var(--w-size-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--w-text-muted);
+}
+
+.cart-summary__checkout {
+    margin-top: var(--w-space-2);
+}
+
+.cart-summary__continue {
+    text-align: center;
+    font-size: var(--w-size-sm);
+    color: var(--w-text-muted);
+    text-decoration: underline;
+    transition: color var(--w-t-fast);
+}
+
+.cart-summary__continue:hover {
+    color: var(--w-text);
+}
+
+@media (min-width: 992px) {
+    .cart-layout {
+        grid-template-columns: minmax(0, 1fr) 360px;
+    }
+
+    .cart-aside {
+        position: sticky;
+        top: calc(var(--w-header-h) + var(--w-space-4));
+    }
+
+    .cart-line {
+        grid-template-columns: 96px minmax(0, 1fr);
+        gap: 16px;
+        padding: var(--w-space-5);
+    }
+}
+
+/* ── Ajout rapide sur les cartes produit ──────────────────────
+   Le bouton est hors du lien principal : le clic ajoute au panier
+   au lieu de naviguer vers la fiche. Il suit le cœur dans le coin
+   supérieur droit, juste en dessous : même cercle blanc, même geste,
+   deux actions au même repère visuel. */
+
+.product-card__quick,
+.product-card__quick-add {
+    position: absolute;
+    top: calc(var(--w-space-2) + 2.25rem + var(--w-space-2));
+    right: var(--w-space-2);
+    z-index: 3;
+}
+
+.product-card__quick {
+    display: grid;
+    justify-items: end;
+    gap: 6px;
+}
+
+.product-card__quick-toggle,
+.product-card__quick-add {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    background: rgb(255 255 255 / 0.9);
+    color: var(--w-text);
+    border: 0;
+    border-radius: var(--w-radius-pill);
+    cursor: pointer;
+    transition: background-color var(--w-t-fast), transform var(--w-t-fast);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .product-card__quick-toggle:hover,
+    .product-card__quick-add:hover {
+        background: #FFFFFF;
+        transform: scale(1.08);
+    }
+}
+
+.product-card__quick-toggle:focus-visible,
+.product-card__quick-add:focus-visible {
+    outline: 2px solid var(--w-text);
+    outline-offset: 2px;
+}
+
+.product-card__quick-add:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* L'icône panier est déjà expressive : le conteneur n'ajoute rien. */
+.product-card__quick-plus {
+    display: grid;
+    place-items: center;
+    line-height: 0;
+}
+
+.size-pills--compact {
+    gap: 6px;
+}
+
+.size-pill--xs {
+    min-width: 40px;
+    min-height: 36px;
+    padding: 0 8px;
+    font-size: var(--w-size-xs);
+}
+
+.product-card__quick-hint {
+    font-size: var(--w-size-xs);
+    color: var(--w-text-muted);
+    text-align: center;
+}
+
+/* ── Confirmation de commande ──────────────────────────────────
+   La référence est l'élément le plus important de cette page : c'est
+   elle que le client doit pouvoir recopier sans effort. */
+
+.checkout-success {
+    max-width: 560px;
+    margin-inline: auto;
+}
+
+.checkout-success__badge {
+    display: grid;
+    place-items: center;
+    width: 68px;
+    height: 68px;
+    margin: 0 auto var(--w-space-4);
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--w-success) 12%, transparent);
+    color: var(--w-success);
+}
+
+.checkout-success__title {
+    margin: 0 0 var(--w-space-2);
+    font-size: var(--w-size-xl);
+}
+
+.checkout-success__text {
+    margin: 0 0 var(--w-space-3);
+    color: var(--w-text-muted);
+}
+
+.checkout-success__text--muted {
+    font-size: var(--w-size-sm);
+}
+
+.checkout-success__reference-box {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--w-space-2);
+    margin: var(--w-space-4) 0;
+    padding: var(--w-space-3);
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius);
+    background: var(--w-bg-alt);
+    text-align: left;
+}
+
+.checkout-success__reference-label {
+    font-size: var(--w-size-xs);
+    color: var(--w-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.checkout-success__reference-value {
+    flex: 1 1 auto;
+    font-family: var(--w-font-mono, monospace);
+    font-size: var(--w-size-lg);
+    font-weight: 700;
+    user-select: all;
+}
+
+.checkout-success__copy {
+    min-height: 40px;
+    padding: 0 16px;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-pill);
+    background: var(--w-bg);
+    color: var(--w-text);
+    font-size: var(--w-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.checkout-success__copy.is-copied {
+    border-color: var(--w-success);
+    color: var(--w-success);
+}
+
+.checkout-success__actions {
+    display: grid;
+    gap: 12px;
+    justify-items: stretch;
+    margin-top: var(--w-space-5);
+}
+
+/* Le lien Wave passe devant : c'est l'action que le client attend
+   d'avoir à portée de pouce juste après avoir commandé. */
+.checkout-success__wave {
+    width: 100%;
+}
+
+.checkout-success__hint {
+    margin: 0;
+    font-size: var(--w-size-xs);
+    color: var(--w-text-muted);
+}
+
+/* ── Pastilles de tailles ──────────────────────────────────────
+   Un bouton par taille au lieu d'un <select> : le choix se fait au
+   doigt et la valeur reste visible sans ouvrir de liste. */
+
+.size-guide-link {
+    margin-top: 10px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--w-text-muted);
+    font-size: var(--w-size-sm);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.size-guide-link:hover {
+    color: var(--w-text);
+}
+
+.size-guide__hint {
+    margin: 0 0 16px;
+    color: var(--w-text-muted);
+    font-size: var(--w-size-sm);
+}
+
+.size-guide__list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.size-guide__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-sm);
+    font-size: var(--w-size-sm);
+}
+
+.size-guide__item--out {
+    opacity: 0.55;
+}
+
+.size-guide__label {
+    font-weight: 700;
+}
+
+.size-guide__item--out .size-guide__label {
+    text-decoration: line-through;
+}
+
+.size-guide__stock {
+    color: var(--w-text-muted);
+}
+
+/* Le <select> reste la source de vérité du formulaire ; les pastilles
+   le pilotent. On le cache visuellement sans le retirer des lecteurs
+   d'écran, qui Getsent une liste cohérente avec le groupe de boutons. */
+.product-form .sr-only[data-product-size] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Le select caché garde le focus quand une pastille est active : sans
+   cela, la tabulation repart du début de la page au lieu de rejoindre
+   le groupe de tailles. */
+.product-form fieldset:focus-within .size-guide-link {
+    color: var(--w-text);
+}
+
+.size-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+/* display:flex ci-dessus neutraliserait l'attribut hidden : on rétablit
+   le masquage pour la liste de tailles et l'invite de l'ajout rapide,
+   qui apparaissent seulement à la demande. */
+.size-pills[hidden],
+.product-card__quick-hint[hidden] {
+    display: none;
+}
+
+.size-pill {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    min-width: 52px;
+    min-height: var(--w-tap);
+    padding: 0 12px;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius-sm);
+    background: var(--w-bg);
+    color: var(--w-text);
+    font-size: var(--w-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--w-t-fast), background var(--w-t-fast), color var(--w-t-fast);
+}
+
+.size-pill:hover:not(:disabled) {
+    border-color: var(--w-accent);
+}
+
+/* La pastille choisie reste sélectionnée après le rechargement. */
+.size-pill[aria-pressed="true"] {
+    background: var(--w-accent);
+    border-color: var(--w-accent);
+    color: var(--w-bg);
+}
+
+.size-pill:disabled {
+    color: var(--w-text-muted);
+    cursor: not-allowed;
+    background: var(--w-bg-alt);
+}
+
+/* Épuisée : texte barré, la pastille reste lisible pour le repère. */
+.size-pill--out {
+    text-decoration: line-through;
+    opacity: 0.55;
+}
+
+.size-pill__hint {
+    position: absolute;
+    inset-inline: 0;
+    bottom: -18px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--w-danger);
+    text-align: center;
+    text-decoration: none;
+}
+
+.size-pills--with-hint {
+    padding-bottom: 20px;
+}
+
+/* ── Message de rareté ──────────────────────────────────────── */
+
+.scarcity {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 0 0;
+    padding: 6px 12px;
+    border-radius: var(--w-radius-pill);
+    background: rgb(198 40 40 / 0.08);
+    color: var(--w-danger);
+    font-size: var(--w-size-sm);
+    font-weight: 600;
+}
+
+.scarcity--low {
+    background: rgb(184 134 11 / 0.1);
+    color: var(--w-warning);
+}
+
+.scarcity::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
