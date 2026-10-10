@@ -12,7 +12,9 @@ use App\Core\Session;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\ShippingZone;
+use App\Services\OrderService;
 use App\Services\SettingsService;
+use App\Services\UploadService;
 use App\Services\WhatsAppService;
 
 /**
@@ -136,6 +138,73 @@ final class CheckoutController extends Controller
                     ? (new SettingsService())->waveLink()
                     : null,
         ], 'layouts/shop');
+    }
+
+    /**
+     * Preuve de paiement Wave.
+     *
+     * Le client joint une capture de son reçu depuis la page de confirmation ;
+     * la page est publique et n'est identifiée que par la référence, seule
+     * information déjà affichée sur place. La route est protégée par CSRF et
+     * le rate limiter, et n'accepte une preuve que pour une commande Wave
+     * encore en attente d'encaissement.
+     */
+    public function uploadProof(Request $request): Response
+    {
+        $reference = (string) $request->routeParam('reference', '');
+        $order     = $reference !== '' ? Order::findByReference($reference) : null;
+
+        if ($order === null) {
+            abort(404);
+        }
+
+        // Une preuve n'a de sens que tant que la commande attend son
+        // encaissement : une fois payée (ou pour le paiement à la livraison),
+        // le back-office n'a plus rien à vérifier ici.
+        if ((string) ($order->getAttribute('payment_method') ?? '') !== Order::METHOD_WAVE
+            || (string) ($order->getAttribute('payment_status') ?? Order::PAYMENT_UNPAID) !== Order::PAYMENT_UNPAID
+        ) {
+            return $this->redirect('/order/success/' . rawurlencode($reference));
+        }
+
+        $file = $request->file('proof');
+
+        if ($file === null) {
+            return $this->redirectWithErrors(
+                '/order/success/' . rawurlencode($reference),
+                ['proof' => __('checkout.wave_proof_required')]
+            );
+        }
+
+        $result = UploadService::store($file, 'payments', 'preuve-' . $reference);
+
+        if (!$result['ok']) {
+            return $this->redirectWithErrors(
+                '/order/success/' . rawurlencode($reference),
+                ['proof' => $result['error']]
+            );
+        }
+
+        // Une nouvelle capture remplace la précédente : on efface l'ancien
+        // fichier pour ne pas accumuler d'orphelins dans storage/uploads.
+        UploadService::delete((string) ($order->getAttribute('payment_proof_path') ?? ''));
+
+        Database::update('orders', ['payment_proof_path' => $result['path']], ['id' => $order->id()]);
+
+        OrderService::addHistory(
+            $order->id(),
+            (string) $order->getAttribute('status'),
+            'Preuve de paiement Wave reçue.'
+        );
+
+        if ($request->wantsJson()) {
+            return $this->json(['path' => $result['path']]);
+        }
+
+        return $this->redirectWithSuccess(
+            '/order/success/' . rawurlencode($reference),
+            __('flash.proof_uploaded')
+        );
     }
 
     /** Lien WhatsApp du récapitulatif, ou null si le canal n'est pas configuré. */

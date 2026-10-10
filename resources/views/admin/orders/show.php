@@ -243,6 +243,34 @@ $customer = $order->customer();
             </form>
         </section>
 
+        <section class="admin-panel" id="proof">
+            <header class="admin-panel__head">
+                <h2 class="admin-panel__title"><?= e(__('admin.order.proof')) ?></h2>
+            </header>
+
+            <?php $proofPath = trim((string) ($order->getAttribute('payment_proof_path') ?? '')); ?>
+
+            <?php if ($proofPath !== ''): ?>
+                <div class="admin-panel__head" style="padding:1.2rem">
+                    <a href="<?= e(upload_url($proofPath)) ?>" target="_blank" rel="noopener">
+                        <img class="admin-proof" src="<?= e(upload_url($proofPath)) ?>"
+                             alt="<?= e(__('admin.order.proof')) ?>" loading="lazy">
+                    </a>
+
+                    <form class="admin-filter__actions" method="post" style="margin-top:1rem"
+                          action="<?= e(url('/admin/orders/' . $order->id() . '/proof/delete')) ?>">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn btn-sm btn-danger"
+                                data-confirm="<?= e(__('admin.order.proof_delete_confirm')) ?>">
+                            <?= e(__('admin.order.proof_delete')) ?>
+                        </button>
+                    </form>
+                </div>
+            <?php else: ?>
+                <p class="admin-panel__head" style="padding:1.2rem"><?= e(__('admin.order.proof_empty')) ?></p>
+            <?php endif; ?>
+        </section>
+
         <section class="admin-panel" id="notes">
             <header class="admin-panel__head">
                 <h2 class="admin-panel__title"><?= e(__('admin.order.internal_notes')) ?></h2>

@@ -88,6 +88,8 @@ $router->get('/api/shipping/quote', 'Api\CartApiController@shippingQuote')
     ->middleware(['rate_limit']);
 
 $router->get('/order/success/{reference}', 'Shop\CheckoutController@success');
+$router->post('/order/success/{reference}/proof', 'Shop\CheckoutController@uploadProof')
+    ->middleware(['csrf', 'rate_limit']);
 
 // ── Médias produits ───────────────────────────────────────────────────
 // Les fichiers sont stockés hors document root : ils ne sont servis que
@@ -198,6 +200,8 @@ $router->group(['admin'], 'admin');
     $router->post('/orders/{id}/payment', 'Admin\OrderController@updatePayment')
         ->middleware(['csrf']);
     $router->post('/orders/{id}/notes', 'Admin\OrderController@updateNotes')
+        ->middleware(['csrf']);
+    $router->post('/orders/{id}/proof/delete', 'Admin\OrderController@deleteProof')
         ->middleware(['csrf']);
 
     // ── Clients ────────────────────────────────────────────────────────

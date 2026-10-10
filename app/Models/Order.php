@@ -26,7 +26,8 @@ class Order extends BaseModel
         'shipping_first_name', 'shipping_last_name', 'shipping_address',
         'shipping_city', 'shipping_country_code', 'shipping_zone_id',
         'shipping_method', 'notes', 'admin_notes', 'tracking_number',
-        'cancelled_reason', 'paid_at', 'shipped_at', 'delivered_at', 'cancelled_at',
+        'payment_proof_path', 'cancelled_reason',
+        'paid_at', 'shipped_at', 'delivered_at', 'cancelled_at',
     ];
 
     protected array $intColumns = [

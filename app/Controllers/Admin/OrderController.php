@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Controllers\Admin;
 
+use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
 use App\Models\Order;
 use App\Services\OrderService;
+use App\Services\UploadService;
 use App\Validators\OrderValidator;
 
 /**
@@ -108,6 +110,29 @@ final class OrderController extends AdminController
         }
 
         return $this->redirectWithSuccess('/admin/orders/' . $order->id(), __('flash.payment_updated'));
+    }
+
+    public function deleteProof(Request $request): Response
+    {
+        $order = Order::findOrFail($this->id($request));
+
+        $path = (string) ($order->getAttribute('payment_proof_path') ?? '');
+
+        if ($path !== '') {
+            UploadService::delete($path);
+
+            Database::update('orders', ['payment_proof_path' => null], ['id' => $order->id()]);
+
+            OrderService::addHistory(
+                $order->id(),
+                (string) $order->getAttribute('status'),
+                'Preuve de paiement Wave supprimée.'
+            );
+
+            return $this->redirectWithSuccess('/admin/orders/' . $order->id(), __('flash.proof_removed'));
+        }
+
+        return $this->redirect('/admin/orders/' . $order->id());
     }
 
     public function updateNotes(Request $request): Response

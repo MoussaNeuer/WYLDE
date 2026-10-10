@@ -302,6 +302,8 @@ CREATE TABLE IF NOT EXISTS `orders` (
     `notes`           TEXT          NULL COMMENT 'Message du client',
     `admin_notes`     TEXT          NULL COMMENT 'Notes internes, invisibles du client',
     `tracking_number` VARCHAR(120)  NULL,
+    `payment_proof_path` VARCHAR(255) NULL
+        COMMENT 'Preuve de paiement Wave : chemin relatif dans storage/uploads/payments',
     `cancelled_reason` VARCHAR(255) NULL,
     `paid_at`         DATETIME      NULL,
     `shipped_at`      DATETIME      NULL,

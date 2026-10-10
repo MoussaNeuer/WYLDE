@@ -1125,6 +1125,15 @@ kbd {
     background: var(--w-bg-alt);
 }
 
+.admin-proof {
+    display: block;
+    max-width: 320px;
+    height: auto;
+    border: 1px solid var(--w-border);
+    border-radius: var(--w-radius);
+    background: var(--w-bg-alt);
+}
+
 .admin-bulkbar {
     display: flex;
     align-items: center;
