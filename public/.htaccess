@@ -58,13 +58,19 @@ AddDefaultCharset UTF-8
     RewriteRule ^ - [F,L]
 
     # 3. Aucun segment de chemin commençant par un point :
-    #    .env, .git, .htaccess, .svn…
+    #    .env, .git, .htaccess, .svn… (.well-known reste accessible pour
+    #    la validation des certificats Let's Encrypt).
+    RewriteCond %{REQUEST_URI} !^/\.well-known/ [NC]
     RewriteRule "(^|/)\.[^/]*$" - [F,L]
 
-    # Forcer le HTTPS quand l'environnement est réellement en production
+    # Forcer le HTTPS en production.
+    # Deux déclencheurs (OU) : APP_ENV=production (via SetEnv) ou le nom de
+    # domaine de production. Le second rend la règle active sur OVHcloud même
+    # sans SetEnv. Le local (localhost) n'est jamais redirigé.
     RewriteCond %{HTTPS} !=on
     RewriteCond %{HTTP:X-Forwarded-Proto} !https
-    RewriteCond %{ENV:APP_ENV} ^production$
+    RewriteCond %{ENV:APP_ENV} ^production$ [OR]
+    RewriteCond %{HTTP_HOST} ^(www\.)?wylde-dakar\.com$ [NC]
     RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [L,R=301]
 
     # Fichiers et dossiers réellement présents sont servis directement

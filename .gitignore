@@ -12,6 +12,9 @@
 /public/assets/css/*.map
 /public/assets/js/*.map
 
+# ── Paquets de déploiement ──────────────────────────────────
+/deploy-*.zip
+
 # ── Médias uploadés (versions de prod) ──────────────────────
 /storage/uploads/*
 !/storage/uploads/products/
