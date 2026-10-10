@@ -141,6 +141,116 @@ final class CheckoutController extends Controller
     }
 
     /**
+     * Suivi de commande : récapitulatif public + suivi en direct.
+     *
+     * La page est identifiée par la référence (comme la page de
+     * confirmation, qui la montre déjà au client). Le même point sert de
+     * source JSON au rafraîchissement automatique : quand l'équipe fait
+     * évoluer la commande dans le back-office, la page client se met à
+     * jour sans rechargement.
+     */
+    public function tracking(Request $request): Response
+    {
+        $reference = (string) $request->routeParam('reference', '');
+        $order     = $reference !== '' ? Order::findByReference($reference) : null;
+
+        if ($order === null) {
+            abort(404);
+        }
+
+        $payload = $this->trackingPayload($order);
+
+        if ($request->wantsJson()) {
+            $response = $this->json($payload);
+            $response->setHeader('Cache-Control', 'no-store');
+
+            return $response;
+        }
+
+        $response = $this->view('shop/order-tracking', [
+            'title' => __('tracking.title'),
+            'order' => $order,
+            'items' => $order->items(),
+            // État de suivi identique pour le rendu HTML et le JSON de
+            // polling : aucun décalage entre ce que voit le client et ce
+            // que renvoie la mise à jour automatique.
+            'payload' => $payload,
+        ], 'layouts/tracking');
+
+        $response->setHeader('Cache-Control', 'no-store');
+
+        return $response;
+    }
+
+    /**
+     * État public d'une commande pour la page de suivi.
+     *
+     * @return array<string, mixed>
+     */
+    private function trackingPayload(Order $order): array
+    {
+        $status = (string) $order->status;
+
+        $phase = match ($status) {
+            Order::STATUS_CONFIRMED => 2,
+            Order::STATUS_PREPARING => 3,
+            Order::STATUS_SHIPPED   => 4,
+            Order::STATUS_DELIVERED => 5,
+            Order::STATUS_CANCELLED => null,
+            default                 => 1,
+        };
+
+        $steps = [];
+
+        foreach ([
+            Order::STATUS_PENDING,
+            Order::STATUS_CONFIRMED,
+            Order::STATUS_PREPARING,
+            Order::STATUS_SHIPPED,
+            Order::STATUS_DELIVERED,
+        ] as $index => $key) {
+            $steps[] = [
+                'key'   => $key,
+                'label' => __('order.status.' . $key),
+                // Livrée : les 5 étapes sont vertes. Annulée : aucune.
+                // Sinon, tout ce qui précède est « fait », l'étape courante
+                // est « active », la suite reste « à venir ».
+                'state' => $status === Order::STATUS_CANCELLED
+                    ? 'todo'
+                    : ($status === Order::STATUS_DELIVERED
+                        ? 'done'
+                        : ($index + 1 < (int) max(1, $phase ?? 0)
+                            ? 'done'
+                            : ($index + 1 === (int) max(1, $phase) ? 'active' : 'todo'))),
+            ];
+        }
+
+$proofPath = trim((string) ($order->getAttribute('payment_proof_path') ?? ''));
+$cancelNote = trim((string) ($order->getAttribute('cancelled_reason') ?? ''));
+
+return [
+    'status'      => $status,
+    'statusLabel' => __('order.status.' . $status),
+    'cancelNote'  => $cancelNote !== '' ? $cancelNote : null,
+    'phase'       => $phase,
+            'cancelled'   => $status === Order::STATUS_CANCELLED,
+            'delivered'   => $status === Order::STATUS_DELIVERED,
+            'ended'       => in_array($status, [Order::STATUS_DELIVERED, Order::STATUS_CANCELLED], true),
+            'steps'       => $steps,
+            'payment'     => [
+                'method'      => (string) ($order->payment_method ?? ''),
+                'methodLabel' => __('order.payment_method.' . $order->payment_method),
+                'status'      => (string) $order->payment_status,
+                'statusLabel' => __('order.payment_status.' . $order->payment_status),
+                'proof'       => $proofPath !== '' ? $proofPath : null,
+            ],
+            'tracking'  => ['number' => trim((string) ($order->getAttribute('tracking_number') ?? ''))],
+            'reference' => (string) ($order->getAttribute('reference') ?? ''),
+            'placedAt'  => format_date((string) $order->created_at),
+        ];
+    }
+
+    /**
      * Preuve de paiement Wave.
      *
      * Le client joint une capture de son reçu depuis la page de confirmation ;
@@ -198,11 +308,11 @@ final class CheckoutController extends Controller
         );
 
         if ($request->wantsJson()) {
-            return $this->json(['path' => $result['path']]);
+            return $this->json(['path' => $result['path'], 'redirect' => '/order/tracking/' . rawurlencode($reference)]);
         }
 
         return $this->redirectWithSuccess(
-            '/order/success/' . rawurlencode($reference),
+            '/order/tracking/' . rawurlencode($reference),
             __('flash.proof_uploaded')
         );
     }

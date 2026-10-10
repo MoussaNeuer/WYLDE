@@ -91,6 +91,10 @@ $router->get('/order/success/{reference}', 'Shop\CheckoutController@success');
 $router->post('/order/success/{reference}/proof', 'Shop\CheckoutController@uploadProof')
     ->middleware(['csrf', 'rate_limit']);
 
+// Suivi de commande (public, identifié par la référence) : le même point
+// sert de source JSON au rafraîchissement automatique côté client.
+$router->get('/order/tracking/{reference}', 'Shop\CheckoutController@tracking');
+
 // ── Médias produits ───────────────────────────────────────────────────
 // Les fichiers sont stockés hors document root : ils ne sont servis que
 // par ce contrôleur, qui valide le chemin (§13.4).

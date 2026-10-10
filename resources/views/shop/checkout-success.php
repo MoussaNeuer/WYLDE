@@ -124,6 +124,16 @@ component('toast');
                     </p>
                 <?php endif; ?>
 
+                <?php if (!empty($reference)): ?>
+                    <?php /* Une fois la preuve envoyée, ou dès la fin de la
+                             commande, le client suit l'avancement en direct
+                             sur une page dédiée (sans rechargement). */ ?>
+                    <a class="btn btn-ghost checkout-success__track"
+                       href="<?= e(url('/order/tracking/' . rawurlencode((string) $reference))) ?>">
+                        <?= e(__('order.track_order')) ?>
+                    </a>
+                <?php endif; ?>
+
                 <a class="btn btn-light" href="<?= e(url('/')) ?>"><?= e(__('nav.home')) ?></a>
                 <a class="btn btn-outline-light" href="<?= e(url('/shop')) ?>"><?= e(__('nav.shop')) ?></a>
             </div>
